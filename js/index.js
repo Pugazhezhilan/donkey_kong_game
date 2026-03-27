@@ -56,6 +56,31 @@ collisions.forEach((row, y) => {
   })
 })
 
+// gems setup from l_Gems layer
+const gems = []
+const makeGemsFromLayer = (gemsLayer) => {
+  gems.length = 0;
+
+  for(let y=0;y<gemsLayer.length;y++){
+    for(let x=0;x<gemsLayer[y].length;x++){
+      const symbol = gemsLayer[y][x];
+      if(symbol !== 0){
+        let pts = 10;
+        if(symbol == 5){
+          pts = 20
+        }
+        if(symbol == 9){
+          pts = 50
+        }
+
+        gems.push(new Gem({x: x*16, y: y*16, size: 16, symbol: symbol, points: pts}))
+      }
+    }
+  }
+}
+
+makeGemsFromLayer(l_Gems)
+
 const renderLayer = (tilesData, tilesetImage, tileSize, context) => {
   const tilesPerRow = Math.ceil(tilesetImage.width / tileSize)
 
@@ -68,17 +93,7 @@ const renderLayer = (tilesData, tilesetImage, tileSize, context) => {
         const srcX = (tileIndex % tilesPerRow) * tileSize
         const srcY = Math.floor(tileIndex / tilesPerRow) * tileSize
 
-        context.drawImage(
-          tilesetImage, 
-          srcX,
-          srcY, 
-          tileSize,
-          tileSize, 
-          x * 16,
-          y * 16, 
-          16,
-          16, 
-        )
+        context.drawImage(tilesetImage, srcX, srcY, tileSize, tileSize, x * 16, y * 16, 16, 16)
       }
     })
   })
@@ -89,18 +104,17 @@ const renderStaticLayers = async () => {
   offscreenCanvas.height = canvas.height
   const offscreenContext = offscreenCanvas.getContext('2d')
 
-  for (const [layerName, tilesData] of Object.entries(layersData)) {
+  for (const [layerName, tilesData] of Object.entries(layersData)){
+    if(layerName == 'l_Gems')continue;
+
     const tilesetInfo = tilesets[layerName]
-    if (tilesetInfo) {
-      try {
+
+    if (tilesetInfo){
+      try{
         const tilesetImage = await loadImage(tilesetInfo.imageUrl)
-        renderLayer(
-          tilesData,
-          tilesetImage,
-          tilesetInfo.tileSize,
-          offscreenContext,
-        )
-      } catch (error) {
+        renderLayer(tilesData,tilesetImage,tilesetInfo.tileSize,offscreenContext)
+      }
+      catch (error){
         console.error(`Failed to load image for layer ${layerName}:`, error)
       }
     }
@@ -119,34 +133,107 @@ const player = new Player({
 })
 
 const keys = {
-  w: {
-    pressed: false,
+  w:{
+    pressed: false
   },
-  a: {
-    pressed: false,
+  a:{
+    pressed: false
   },
-  d: {
-    pressed: false,
-  },
+  d:{
+    pressed: false
+  }
 }
 
+let score = 0;
+let levelDone = false;
+let gemsImage = null;
+
 let lastTime = performance.now()
+
+function drawHud(ctx){ // to store the score
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(8,8,170,28);
+
+  ctx.fillStyle = "white";
+  ctx.font = '16px monospace'
+  ctx.fillText('SCORE: ' + score, 16, 28)
+  ctx.restore();
+}
+
+function drawLevelComplete(ctx){
+  ctx.save()
+  ctx.fillStyle='rgba(0,0,0,0.65)'
+  ctx.fillRect(0,0,1024,576);
+
+  ctx.fillStyle = 'yellow'
+  ctx.font = '48px monospace'
+  ctx.fillText('LEVEL COMPLETED!!!', 240, 250)
+
+  ctx.font = '20px monospace'
+  ctx.fillStyle = 'white'
+  ctx.fillText("(Press R to restart) || (just refresh page lol!)", 285, 310);
+  ctx.restore();
+}
+
+function tryCollectGems(deltaTime){
+  if(levelDone)return;
+  const pb = player.getBounds()
+
+  for(let i=0;i<gems.length;i++){
+    const g = gems[i]
+    g.update(deltaTime);
+
+    if(g.collected) continue;
+
+    const gb = g.getBounds();
+    if(rectsTouching(pb,gb)){
+      const got = g.collect()
+      score += got
+    }
+  }
+
+  let left = 0;
+  for(let i=0;i<gems.length;i++){
+    if(!gems[i].collected)left++;
+  }
+  if(gems.length > 0 && left == 0){
+    levelDone = true
+  }
+}
+
 function animate(backgroundCanvas) {
   
   const currentTime = performance.now()
   const deltaTime = (currentTime - lastTime) / 1000
   lastTime = currentTime
 
-  player.handleInput(keys)
-  player.update(deltaTime, collisionBlocks)
+  if(!levelDone){
+    player.handleInput(keys)
+    player.update(deltaTime, collisionBlocks);
+  }
+  else{
+    player.velocity.x = 0;
+    player.velocity.y = 0;
+  }
+
+  tryCollectGems(deltaTime);
 
   c.save()
   c.scale(dpr, dpr)
-  c.clearRect(0, 0, canvas.width, canvas.height)
+  c.translate(-100,0)
+  c.clearRect(0,0,canvas.width, canvas.height)
   c.drawImage(backgroundCanvas, 0, 0)
-  player.draw(c)
-  c.restore()
 
+  for(let i=0;i<gems.length;i++){
+    gems[i].draw(c, gemsImage, 16)
+  }
+  player.draw(c)
+
+  c.translate(100,0)
+  drawHud(c)
+  if(levelDone)drawLevelComplete(c)
+  c.restore()
   requestAnimationFrame(() => animate(backgroundCanvas))
 }
 
@@ -158,6 +245,7 @@ const startRendering = async () => {
       return
     }
 
+    gemsImage = await loadImage("./images/decorations.png")
     animate(backgroundCanvas)
   } catch (error) {
     console.error('Error during rendering:', error)
@@ -165,4 +253,3 @@ const startRendering = async () => {
 }
 
 startRendering()
-
