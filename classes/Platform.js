@@ -34,7 +34,7 @@ class Enemy{
     }
 
     this.gravity = 500;
-    this.isOnGrow = false;
+    this.isOnGround = false;
   }
 
   getBounds(){
@@ -52,20 +52,36 @@ class Enemy{
   }
 
   update(deltaTime, collisionBlocks){
-    // apply gravity
     this.velocity.y += this.gravity*deltaTime;
-
-    // move X
     this.x += this.velocity.x*deltaTime
 
     for(let i=0;i<collisionBlocks.length;i++){
       const block = collisionBlocks[i];
 
-      if(this.x < block.width && this.x + this.width > block.x && this.y + this.height > block.y && this.y < block.y + block.height){
-        // reverse direction
+      if(this.x < block.x + block.width && this.x + this.width > block.x && this.y + this.height > block.y && this.y < block.y + block.height){
         this.velocity.x = -this.velocity.x
+        if(this.velocity.x > 0){
+          this.x = block.x+block.width
+        }
+        else{
+          this.x = block.x-this.width
+        }
+        break;
+      }
+    }
 
-        
+    this.y += this.velocity.y * deltaTime
+    this.isOnGround = false
+
+    for(let i=0;i<collisionBlocks.length;i++){
+      const block = collisionBlocks[i];
+
+      if(this.x < block.x + block.width && this.x + this.width > block.x && this.y + this.height > block.y && this.y < block.y + block.height){
+        if(this.velocity.y > 0){
+          this.velocity.y=0;
+          this.y=block.y-this.height;
+          this.isOnGround = true
+        }
       }
     }
   }

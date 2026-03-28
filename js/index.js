@@ -32,13 +32,16 @@ const tilesets = {
   l_Collisions: { imageUrl: './images/decorations.png', tileSize: 16 },
 };
 
-
-// Tile setup
 const collisionBlocks = []
 const platforms = []
 const blockSize = 16 
 const ladders = []
 window.ladders = ladders;
+
+const enemies = []
+enemies.push(new Enemy({x: 300, y: 200}))
+enemies.push(new Enemy({x: 500, y: 150}))
+enemies.push(new Enemy({x: 700, y: 100}))
 
 collisions.forEach((row, y) => {
   row.forEach((symbol, x) => {
@@ -215,6 +218,21 @@ function tryCollectGems(deltaTime){
   }
 }
 
+function checkEnemyHit(){
+  const pb = player.getBounds();
+
+  for(let i=0;i<enemies.length;i++){
+    const eb = enemies[i].getBounds();
+    if(rectsTouching(pb,eb)){
+      player.x = 100
+      player.y = 100
+      player.velocity.x = 0
+      player.velocity.y = 0
+      score = Math.max(0,score-20);
+    }
+  }
+}
+
 camera.viewH = 1024;
 camera.viewH = 576;
 camera.offsetX = 250;
@@ -232,6 +250,9 @@ function animate(backgroundCanvas) {
   if(!levelDone){
     player.handleInput(keys)
     player.update(deltaTime, collisionBlocks);
+    for(let i=0;i<enemies.length;i++){
+      enemies[i].update(deltaTime,collisionBlocks);
+    }
   }
   else{
     player.velocity.x = 0;
@@ -240,6 +261,7 @@ function animate(backgroundCanvas) {
   
   cameraUpdate(deltaTime, player);
   tryCollectGems(deltaTime);
+  checkEnemyHit();
 
   c.save()
   c.scale(dpr, dpr);
@@ -257,6 +279,10 @@ function animate(backgroundCanvas) {
   for(let i=0;i<gems.length;i++){
     gems[i].draw(c, gemsImage, 16)
   }
+  for(let i=0;i<enemies.length;i++){
+    enemies[i].draw(c);
+  }
+
   player.draw(c)
   c.restore()
   drawHud(c);
