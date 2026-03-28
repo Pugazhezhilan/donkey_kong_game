@@ -38,6 +38,7 @@ const collisionBlocks = []
 const platforms = []
 const blockSize = 16 
 const ladders = []
+window.ladders = ladders;
 
 collisions.forEach((row, y) => {
   row.forEach((symbol, x) => {
@@ -60,9 +61,12 @@ collisions.forEach((row, y) => {
         }),
       )
     }
-    else if(sumbol == 3){
+    else if(symbol == 3){
       ladders.push({
-        x: y*
+        x: x*blockSize,
+        y: y*blockSize,
+        width: 16,
+        height: 16
       })
     }
   })
@@ -153,6 +157,9 @@ const keys = {
   },
   d:{
     pressed: false
+  },
+  s:{
+    pressed: false
   }
 }
 
@@ -230,7 +237,7 @@ function animate(backgroundCanvas) {
     player.velocity.x = 0;
     player.velocity.y = 0;
   }
-
+  
   cameraUpdate(deltaTime, player);
   tryCollectGems(deltaTime);
 
@@ -240,6 +247,12 @@ function animate(backgroundCanvas) {
   c.save()
   c.translate(-camera.x, -camera.y)
   c.drawImage(backgroundCanvas,0,0)
+
+  for(let i=0;i<ladders.length;i++){
+    const l=ladders[i];
+    c.fillStyle='rgba(0,255,0,0.3)';
+    c.fillRect(l.x,l.y,l.width,l.height);
+  }
 
   for(let i=0;i<gems.length;i++){
     gems[i].draw(c, gemsImage, 16)

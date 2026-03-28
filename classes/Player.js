@@ -6,6 +6,8 @@ class Player{
   constructor({ x, y, size, velocity = { x: 0, y: 0 } }){
     this.x = x
     this.y = y
+    this.onLadder = false
+    this.climbSpeed = 120
     this.width = size
     this.height = size
     this.velocity = velocity
@@ -22,19 +24,29 @@ class Player{
   }
 
   update(deltaTime, collisionBlocks){
-    if (!deltaTime) return
-    this.applyGravity(deltaTime)
+    if(!deltaTime)return;
+    this.checkLadder()
 
-    this.updateHorizontalPosition(deltaTime)
+    if(!this.onLadder){
+      this.applyGravity(deltaTime)
+    }
+    else{
+      this.velocity.y = 0;
+    }
+
+    this.updateHorizontalPosition(deltaTime);
     this.checkForHorizontalCollisions(collisionBlocks)
 
-    this.checkPlatformCollisions(platforms, deltaTime)
-
-    this.updateVerticalPosition(deltaTime)
-    this.checkForVerticalCollisions(collisionBlocks)
+    if(!this.onLadder){
+      this.checkPlatformCollisions(platforms, deltaTime)
+    }
+    this.updateVerticalPosition(deltaTime);
+    this.checkForVerticalCollisions(collisionBlocks);
   }
 
   jump(){
+    if(this.onLadder)return;
+
     this.velocity.y = -JUMP_POWER
     this.isOnGround = false
   }
@@ -53,12 +65,23 @@ class Player{
 
   handleInput(keys){
     this.velocity.x = 0
-
     if(keys.d.pressed){
       this.velocity.x = X_VELOCITY
-    } 
+    }
     else if(keys.a.pressed){
       this.velocity.x = -X_VELOCITY
+    }
+
+    if(this.onLadder){
+      if(keys.w.pressed){
+        this.velocity.y = -this.climbSpeed
+      }
+      else if(keys.s.pressed){
+        this.velocity.y = this.climbSpeed;
+      }
+      else{
+        this.velocity.y = 0;
+      }
     }
   }
 
@@ -127,5 +150,20 @@ class Player{
       }
     }
     this.isOnGround = false
+  }
+
+  checkLadder(){
+    this.onLadder = false
+    for(let i=0;i<window.ladders.length;i++){
+      const l = window.ladders[i];
+      if(this.x < l.x + l.width && this.x + this.width > l.x && this.y < l.y + l.height && this.y + this.height > l.y){
+        this.onLadder = true
+        if(keys.w.pressed || keys.s.pressed){
+          this.x = l.x + (l.width/2) - (this.width/2);
+        }
+        this.x = l.x;
+        return
+      }
+    }
   }
 }

@@ -14,6 +14,9 @@ window.addEventListener('keydown', (event) => {
     case 'R':
       location.reload()
       break
+    case 's':
+      keys.s.pressed = true
+      break
   }
 })
 
@@ -24,6 +27,9 @@ window.addEventListener('keyup', (event) => {
       break
     case 'd':
       keys.d.pressed = false
+      break
+    case 's':
+      keys.s.pressed = false
       break
   }
 })
