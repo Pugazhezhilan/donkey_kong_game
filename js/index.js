@@ -5,6 +5,11 @@ const dpr = window.devicePixelRatio || 1
 canvas.width = 1024 * dpr
 canvas.height = 576 * dpr
 
+let score = 0;
+let levelDone = false;
+let gemsImage = null;
+let lastTime = performance.now()
+
 const layersData = {
    l_Sky_Ocean: l_Sky_Ocean,
    l_Bramble: l_Bramble,
@@ -32,10 +37,11 @@ const tilesets = {
 const collisionBlocks = []
 const platforms = []
 const blockSize = 16 
+const ladders = []
 
 collisions.forEach((row, y) => {
   row.forEach((symbol, x) => {
-    if (symbol === 1) {
+    if (symbol === 1){
       collisionBlocks.push(
         new CollisionBlock({
           x: x * blockSize,
@@ -43,7 +49,8 @@ collisions.forEach((row, y) => {
           size: blockSize,
         }),
       )
-    } else if (symbol === 2) {
+    }
+    else if(symbol == 2){
       platforms.push(
         new Platform({
           x: x * blockSize,
@@ -52,6 +59,11 @@ collisions.forEach((row, y) => {
           height: 4,
         }),
       )
+    }
+    else if(sumbol == 3){
+      ladders.push({
+        x: y*
+      })
     }
   })
 })
@@ -144,12 +156,6 @@ const keys = {
   }
 }
 
-let score = 0;
-let levelDone = false;
-let gemsImage = null;
-
-let lastTime = performance.now()
-
 function drawHud(ctx){ // to store the score
   ctx.save();
   ctx.fillStyle = 'rgba(0,0,0,0.5)';
@@ -202,6 +208,14 @@ function tryCollectGems(deltaTime){
   }
 }
 
+camera.viewH = 1024;
+camera.viewH = 576;
+camera.offsetX = 250;
+camera.offsetY = 220
+camera.smooth = 0.12
+
+cameraSetWorldSizeFromLayer(l_Back_Tiles);
+
 function animate(backgroundCanvas) {
   
   const currentTime = performance.now()
@@ -217,23 +231,25 @@ function animate(backgroundCanvas) {
     player.velocity.y = 0;
   }
 
+  cameraUpdate(deltaTime, player);
   tryCollectGems(deltaTime);
 
   c.save()
-  c.scale(dpr, dpr)
-  c.translate(-100,0)
+  c.scale(dpr, dpr);
   c.clearRect(0,0,canvas.width, canvas.height)
-  c.drawImage(backgroundCanvas, 0, 0)
+  c.save()
+  c.translate(-camera.x, -camera.y)
+  c.drawImage(backgroundCanvas,0,0)
 
   for(let i=0;i<gems.length;i++){
     gems[i].draw(c, gemsImage, 16)
   }
   player.draw(c)
-
-  c.translate(100,0)
-  drawHud(c)
-  if(levelDone)drawLevelComplete(c)
   c.restore()
+  drawHud(c);
+  if(levelDone)drawLevelComplete(c);
+  c.restore()
+
   requestAnimationFrame(() => animate(backgroundCanvas))
 }
 
