@@ -1,9 +1,11 @@
 window.addEventListener('keydown', (event) => {
   switch (event.key) {
     case 'w':
-      player.jump()
       keys.w.pressed = true
-      break
+      if(!player.onLadder){
+        player.jump()
+      }
+      break;
     case 'a':
       keys.a.pressed = true
       break

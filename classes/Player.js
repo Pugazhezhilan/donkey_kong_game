@@ -153,16 +153,16 @@ class Player{
   }
 
   checkLadder(){
-    this.onLadder = false
+    this.onLadder = false;
     for(let i=0;i<window.ladders.length;i++){
-      const l = window.ladders[i];
-      if(this.x < l.x + l.width && this.x + this.width > l.x && this.y < l.y + l.height && this.y + this.height > l.y){
-        this.onLadder = true
+      const l=window.ladders[i];
+
+      if(this.x < l.x + l.window && this.x + this.width > l.x && this.y < l.y + l.height && this.y + this.height > l.y){
+        this.onLadder = true;
         if(keys.w.pressed || keys.s.pressed){
-          this.x = l.x + (l.width/2) - (this.width/2);
+          this.x = l.x + (l.width/2)-(this.width/2);
         }
-        this.x = l.x;
-        return
+        return;
       }
     }
   }
