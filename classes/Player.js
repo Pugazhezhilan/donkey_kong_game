@@ -1,6 +1,6 @@
 const X_VELOCITY = 200
-const JUMP_POWER = 250
-const GRAVITY = 580
+const JUMP_POWER = 300
+const GRAVITY = 800
 
 class Player{
   constructor({ x, y, size, velocity = { x: 0, y: 0 } }){
@@ -14,6 +14,8 @@ class Player{
     this.isOnGround = false
     this.health = 3;
     this.maxHealth = 3;
+    this.invincible = false;
+    this.invincibleTime = 0;
   }
 
   getBounds(){
@@ -21,29 +23,53 @@ class Player{
   }
 
   draw(c) {
+    if(this.invincible){
+      if(Math.floor(Date.now()/100) % 2 === 0){
+        return;
+      }
+    }
+
     c.fillStyle = 'rgba(255, 0, 0, 0.5)'
-    c.fillRect(this.x, this.y, this.width, this.height)
+    c.fillRect(this.x, this.y, this.width, this.height);
   }
 
   update(deltaTime, collisionBlocks){
-    if(!deltaTime)return;
-    this.checkLadder()
+    if(this.invincible){
+      this.invincibleTime -= deltaTime;
+      if(this.invincibleTime <= 0){
+        this.invincible = false;
+      }
+    }
 
-    if(!this.onLadder){
-      this.applyGravity(deltaTime)
+    if(!deltaTime)return;
+    this.checkLadder();
+
+    if(this.onLadder){
+      this.velocity.x *= 0.5;
+      if(keys.w.pressed){
+        this.velocity.y = -this.climbSpeed;
+      }
+      else if(keys.s.pressed){
+        this.velocity.y = this.climbSpeed;
+      }
+      else{
+        this.velocity.y = 0;
+      }
     }
     else{
-      this.velocity.y = 0;
+      this.applyGravity(deltaTime);
     }
 
     this.updateHorizontalPosition(deltaTime);
-    this.checkForHorizontalCollisions(collisionBlocks)
-
+    this.checkForHorizontalCollisions(collisionBlocks);
     if(!this.onLadder){
-      this.checkPlatformCollisions(platforms, deltaTime)
+      this.checkPlatformCollisions(platforms,deltaTime);
+      this.updateVerticalPosition(deltaTime);
+      this.checkForVerticalCollisions(collisionBlocks);
     }
-    this.updateVerticalPosition(deltaTime);
-    this.checkForVerticalCollisions(collisionBlocks);
+    else{
+      this.updateVerticalPosition(deltaTime);
+    }
   }
 
   jump(){
@@ -66,24 +92,13 @@ class Player{
   }
 
   handleInput(keys){
-    this.velocity.x = 0
-    if(keys.d.pressed){
-      this.velocity.x = X_VELOCITY
-    }
-    else if(keys.a.pressed){
-      this.velocity.x = -X_VELOCITY
-    }
+    this.velocity.x *= 0.8;
 
-    if(this.onLadder){
-      if(keys.w.pressed){
-        this.velocity.y = -this.climbSpeed
-      }
-      else if(keys.s.pressed){
-        this.velocity.y = this.climbSpeed;
-      }
-      else{
-        this.velocity.y = 0;
-      }
+    if(keys.d.pressed){
+      this.velocity.x += X_VELOCITY*0.1;
+    }
+    if(keys.a.pressed){
+      this.velocity.x -= X_VELOCITY*0.1;
     }
   }
 
@@ -155,12 +170,16 @@ class Player{
   }
 
   checkLadder(){
+    let wasOnLadder = this.onLadder;
     this.onLadder = false;
-    for(let i=0;i<window.ladders.length;i++){
-      const l=window.ladders[i];
 
-      if(this.x < l.x + l.window && this.x + this.width > l.x && this.y < l.y + l.height && this.y + this.height > l.y){
+    for(let i=0;i<window.ladders.length;i++){
+      const l = window.ladders[i];
+      const padding = 6;
+
+      if(this.x + this.width > l.x + padding && this.x < l.x + l.width - padding && this.y + this.height > l.y && this.y < l.y + l.height){
         this.onLadder = true;
+
         if(keys.w.pressed || keys.s.pressed){
           this.x = l.x + (l.width/2)-(this.width/2);
         }

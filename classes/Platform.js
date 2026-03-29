@@ -60,7 +60,7 @@ class Enemy{
       const block = collisionBlocks[i];
 
       if(this.x < block.x + block.width && this.x + this.width > block.x && this.y + this.height > block.y && this.y < block.y + block.height){
-        this.velocity.x = -this.velocity.x
+        this.velocity.x = -this.velocity.x * 0.95
         if(this.velocity.x > 0){
           this.x = block.x+block.width
         }

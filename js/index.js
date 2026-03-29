@@ -42,6 +42,7 @@ const enemies = []
 enemies.push(new Enemy({x: 300, y: 200}))
 enemies.push(new Enemy({x: 500, y: 150}))
 enemies.push(new Enemy({x: 700, y: 100}))
+const door = new Door({x:900,y:400});
 
 collisions.forEach((row, y) => {
   row.forEach((symbol, x) => {
@@ -206,6 +207,7 @@ function tryCollectGems(deltaTime){
     if(rectsTouching(pb,gb)){
       const got = g.collect()
       score += got
+      console.log("Collected gem +" + got);
     }
   }
 
@@ -237,8 +239,15 @@ function checkEnemyHit(){
           score += 30
         }
         else{
+          if(player.invincible){
+            return;
+          }
+
           player.health -= 1;
           player.velocity.y = -120;
+          player.invincible = true;
+          player.invincibleTime = 1;
+
           if(player.health <= 0){
             player.health = 0;
             levelDone = true;
@@ -249,7 +258,20 @@ function checkEnemyHit(){
   }
 }
 
-camera.viewH = 1024;
+function checkDoor(){
+  const pb = player.getBounds();
+  const db = door.getBounds();
+
+  if(rectsTouching(pb,db)){
+    if(gems.length > 0){
+      return;
+    }
+
+    levelDone = true;
+  }
+}
+
+camera.viewW = 1024;
 camera.viewH = 576;
 camera.offsetX = 250;
 camera.offsetY = 220
@@ -286,10 +308,12 @@ function animate(backgroundCanvas) {
 
   c.save()
   c.scale(dpr, dpr);
-  c.clearRect(0,0,canvas.width, canvas.height)
+  c.clearRect(0,0,1024,576)
   c.save()
   c.translate(-camera.x, -camera.y)
   c.drawImage(backgroundCanvas,0,0)
+
+  door.draw(c);
 
   for(let i=0;i<ladders.length;i++){
     const l=ladders[i];
