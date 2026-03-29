@@ -12,6 +12,8 @@ class Player{
     this.height = size
     this.velocity = velocity
     this.isOnGround = false
+    this.health = 3;
+    this.maxHealth = 3;
   }
 
   getBounds(){

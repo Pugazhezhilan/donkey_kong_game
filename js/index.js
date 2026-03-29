@@ -222,13 +222,29 @@ function checkEnemyHit(){
   const pb = player.getBounds();
 
   for(let i=0;i<enemies.length;i++){
-    const eb = enemies[i].getBounds();
-    if(rectsTouching(pb,eb)){
-      player.x = 100
-      player.y = 100
-      player.velocity.x = 0
-      player.velocity.y = 0
-      score = Math.max(0,score-20);
+    const pb = player.getBounds();
+
+    for(let i=0;i<enemies.length;i++){
+      const e = enemies[i];
+      if(e.dead)continue;
+
+      const eb = e.getBounds();
+
+      if(rectsTouching(pb,eb)){
+        if(player.velocity.y > 0 && player.y+player.height-5 < e.y){
+          e.dead = true;
+          player.velocity.y = -150;
+          score += 30
+        }
+        else{
+          player.health -= 1;
+          player.velocity.y = -120;
+          if(player.health <= 0){
+            player.health = 0;
+            levelDone = true;
+          }
+        }
+      }
     }
   }
 }
@@ -252,6 +268,11 @@ function animate(backgroundCanvas) {
     player.update(deltaTime, collisionBlocks);
     for(let i=0;i<enemies.length;i++){
       enemies[i].update(deltaTime,collisionBlocks);
+    }
+    for(let i=enemies.length-1;i>=0;i--){
+      if(enemies[i].dead){
+        enemies.splice(i,1)
+      }
     }
   }
   else{

@@ -7,7 +7,8 @@ class Platform {
   }
 
   draw(c) {
-    c.fillStyle = 'rgba(255, 0, 0, 0.5)'
+    if(this.dead)return;
+    c.fillStyle = "purple"
     c.fillRect(this.x, this.y, this.width, this.height)
   }
 
