@@ -10,6 +10,13 @@ let levelDone = false;
 let gemsImage = null;
 let lastTime = performance.now()
 
+const barrels = []
+setInterval(() => {
+  if(!levelDone){
+    barrels.push(new Barrel({x: 32, y: 64, direction: 1}))
+  }
+},5000);
+
 const layersData = {
    l_Sky_Ocean: l_Sky_Ocean,
    l_Bramble: l_Bramble,
@@ -44,6 +51,11 @@ enemies.push(new Enemy({x: 500, y: 150}))
 enemies.push(new Enemy({x: 700, y: 100}))
 const door = new Door({x:900,y:400});
 
+const checkpoints = []
+checkpoints.push(new CheckPoint({x: 200, y: 350}))
+checkpoints.push(new CheckPoint({x: 600, y: 250}))
+checkpoints.push(new CheckPoint({x: 850, y: 400}));
+
 collisions.forEach((row, y) => {
   row.forEach((symbol, x) => {
     if (symbol === 1){
@@ -75,6 +87,30 @@ collisions.forEach((row, y) => {
     }
   })
 })
+
+function checkBarrelHit(){
+  const pb = player.getBounds();
+  for(let i=0;i<barrels.length;i++){
+    const b = barrels[i];
+    if(b.dead)continue;
+
+    if(rectsTouching(pb,b.getBounds())){
+      if(player.invincible)continue;
+
+      player.health -= 1;
+      player.invincible = true;
+      player.invincibleTime = 1;
+
+      if(player.health <= 0){
+        player.health = player.maxHealth;
+        player.x = currentCheckpoint.x;
+        player.y = currentCheckpoint.y;
+        player.velocity.x = 0;
+        player.velocity.y = 0;
+      }
+    }
+  }
+}
 
 // gems setup from l_Gems layer
 const gems = []
@@ -152,6 +188,8 @@ const player = new Player({
   velocity: { x: 0, y: 0 },
 })
 
+let currentCheckpoint = {x: 100, y:100}
+
 const keys = {
   w:{
     pressed: false
@@ -224,34 +262,35 @@ function checkEnemyHit(){
   const pb = player.getBounds();
 
   for(let i=0;i<enemies.length;i++){
-    const pb = player.getBounds();
+    const e = enemies[i];
+    if(e.dead){
+      continue;
+    }
 
-    for(let i=0;i<enemies.length;i++){
-      const e = enemies[i];
-      if(e.dead)continue;
-
-      const eb = e.getBounds();
-
-      if(rectsTouching(pb,eb)){
-        if(player.velocity.y > 0 && player.y+player.height-5 < e.y){
-          e.dead = true;
-          player.velocity.y = -150;
-          score += 30
+    const eb = e.getBounds();
+    if(rectsTouching(pb,eb)){
+      if(player.velocity.y > 0 && player.y + player.height - 5 < e.y){
+        e.dead = true;
+        player.velocity.y = -150;
+        score = score + 30;
+      }
+      else{
+        if(player.invincible){
+          return;
         }
-        else{
-          if(player.invincible){
-            return;
-          }
 
-          player.health -= 1;
-          player.velocity.y = -120;
-          player.invincible = true;
-          player.invincibleTime = 1;
+        player.health -= 1;
+        player.velocity.y = -120;
+        player.invincible = true;
+        player.invincibleTime = 1;
 
-          if(player.health <= 0){
-            player.health = 0;
-            levelDone = true;
-          }
+        if(player.health <= 0){
+          player.health = player.maxHealth;
+          player.x = currentCheckpoint.x;
+          player.y = currentCheckpoint.y;
+          player.velocity.x = 0;
+          player.velocity.y = 0;
+          console.log("respawned at checkpoint")
         }
       }
     }
@@ -268,6 +307,24 @@ function checkDoor(){
     }
 
     levelDone = true;
+  }
+}
+
+function checkCheckpointTouch(){
+  const pb = player.getBounds();
+
+  for(let i=0;i<checkpoints.length;i++){
+    const cp = checkpoints[i];
+    const cb = cp.getBounds();
+
+    if(rectsTouching(pb,cb)){
+      if(!cp.activated){
+        console.log("checkpoint reached");
+        cp.activated = true;
+        currentCheckpoint.x = cp.x;
+        currentCheckpoint.y = cp.y;
+      }
+    }
   }
 }
 
@@ -296,6 +353,14 @@ function animate(backgroundCanvas) {
         enemies.splice(i,1)
       }
     }
+    for(let i=barrels.length-1;i>=0;i--){
+      const barrel = barrels[i];
+      barrel.update(deltaTime, collisionBlocks);
+
+      if(barrel.dead){
+        barrels.splice(i,1);
+      }
+    }
   }
   else{
     player.velocity.x = 0;
@@ -305,6 +370,7 @@ function animate(backgroundCanvas) {
   cameraUpdate(deltaTime, player);
   tryCollectGems(deltaTime);
   checkEnemyHit();
+  checkBarrelHit();
 
   c.save()
   c.scale(dpr, dpr);
@@ -326,6 +392,10 @@ function animate(backgroundCanvas) {
   }
   for(let i=0;i<enemies.length;i++){
     enemies[i].draw(c);
+  }
+
+  for(let i=0;i<barrels.length;i++){
+    barrels[i].draw(c);
   }
 
   player.draw(c)
