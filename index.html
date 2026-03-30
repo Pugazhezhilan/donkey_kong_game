@@ -1,22 +1,29 @@
-<style>
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  font: inherit;
-  vertical-align: baseline;
-}
-body {
-  background: black;
-  margin: 0;
-}
+<!DOCTYPE html>
+<html>
+<head>  
+  <meta charset = "utf-8">
+  <title>Donkey Kong Run</title>
+  <style>
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font: inherit;
+    vertical-align: baseline;
+  }
+  body {
+    background: black;
+    margin: 0;
+  }
 
-canvas {
-  width: 1024px;
-  height: 576px;
-}
-</style>
+  canvas {
+    width: 1024px;
+    height: 576px;
+  }
+  </style>
+</head>
+<body>
 <canvas style="image-rendering: pixelated"></canvas>
 <script src="./data/l_Sky_Ocean.js"></script>
 <script src="./data/l_Bramble.js"></script>
@@ -35,6 +42,9 @@ canvas {
 <script src="./classes/Door.js"></script>
 <script src="./js/camera.js"></script>
 <script src="./classes/Barrel.js"></script>
+<script src="./classes/Fire.js"></script>
+<script src="./classes/CheckPoint.js"></script>
 <script src="./js/index.js"></script>
 <script src="./js/eventListeners.js"></script>
-
+</body>
+</html>

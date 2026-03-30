@@ -17,6 +17,13 @@ setInterval(() => {
   }
 },5000);
 
+const fires = [];
+setInterval(() => {
+  if(!levelDone){
+    fires.push(new Fire({x: 40, y: 68, direction: 1}))
+  }
+},7000)
+
 const layersData = {
    l_Sky_Ocean: l_Sky_Ocean,
    l_Bramble: l_Bramble,
@@ -101,6 +108,27 @@ function checkBarrelHit(){
       player.invincible = true;
       player.invincibleTime = 1;
 
+      if(player.health <= 0){
+        player.health = player.maxHealth;
+        player.x = currentCheckpoint.x;
+        player.y = currentCheckpoint.y;
+        player.velocity.x = 0;
+        player.velocity.y = 0;
+      }
+    }
+  }
+}
+
+function checkFireHit(){
+  const pb = player.getBounds();
+  for(let i=0;i<fires.length;i++){
+    const f = fires[i];
+    if(f.dead)continue;
+    if(rectsTouching(pb, f.getBounds())){
+      if(player.invincible)continue;
+      player.health -= 1;
+      player.invincible = true;
+      player.invincibleTime = 1;
       if(player.health <= 0){
         player.health = player.maxHealth;
         player.x = currentCheckpoint.x;
@@ -361,6 +389,12 @@ function animate(backgroundCanvas) {
         barrels.splice(i,1);
       }
     }
+    for(let i=fires.length-1;i>=0;i--){
+      fires[i].update(deltaTime, collisionBlocks);
+      if(fires[i].dead){
+        fires.splice(i,1);
+      }
+    }
   }
   else{
     player.velocity.x = 0;
@@ -371,6 +405,7 @@ function animate(backgroundCanvas) {
   tryCollectGems(deltaTime);
   checkEnemyHit();
   checkBarrelHit();
+  checkFireHit();
 
   c.save()
   c.scale(dpr, dpr);
@@ -396,6 +431,10 @@ function animate(backgroundCanvas) {
 
   for(let i=0;i<barrels.length;i++){
     barrels[i].draw(c);
+  }
+
+  for(let i=0;i<fires.length;i++){
+    fires[i].draw(c);
   }
 
   player.draw(c)
