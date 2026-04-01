@@ -1,3 +1,5 @@
+const bgm = new Audio('./music/bg-music/platformer_level03_loop.ogg')
+const sound = new window.Sound();
 const canvas = document.querySelector('canvas')
 const c = canvas.getContext('2d')
 const GAME_WIDTH = 1024
@@ -21,6 +23,17 @@ const layersData = {
   l_Gems: l_Gems,
   l_Collisions: l_Collisions,
 }
+
+async function initAudio(){
+  await sound.load('jump','./music/sfx/jump.mp3');
+  await sound.load('land','./music/sfx/land.mp3');
+  await sound.load('gem','./music/sfx/gem.mp3');
+  await sound.load('hurt','./music/sfx/hurt.mp3');
+  await sound.load('stomp','./music/sfx/stomp.mp3');
+  await sound.load('checkpoint','./music/sfx/checkpoint.mp3');
+  await sound.load('door','./music/sfx/door.mp3');
+}
+initAudio();
 
 const tilesets = {
   l_Sky_Ocean: {imageUrl: './images/decorations.png', tileSize: 16},
@@ -59,6 +72,26 @@ checkpoints.push(new CheckPoint({x: 850, y: 400}))
 let currentCheckpoint = { x: 100, y: 100 }
 
 const keys = {w: {pressed: false}, a: {pressed: false}, d: {pressed: false}, s: {pressed: false}}
+
+bgm.loop=true
+bgm.volume=0.35
+const unlockOnce = async() => {
+  await sound.unlock();
+  try{
+    await bgm.play()
+  }
+  catch(error){
+    console.log(error);
+  }
+
+  window.removeEventListener('keydown', unlockOnce);
+  window.removeEventListener('mousedown', unlockOnce);
+  window.removeEventListener('touchstart', unlockOnce);
+}
+window.addEventListener('keydown',unlockOnce);
+window.addEventListener('mousedown',unlockOnce);
+window.addEventListener('touchstart',unlockOnce);
+window.__sound = sound;
 
 const collisionBlocks = []
 const platforms = []
@@ -195,7 +228,7 @@ function drawLevelComplete(ctx) {
 function tryCollectGems(deltaTime) {
   if (levelDone) return
 
-  const pb = player.getBounds()
+  const pb = player.getHitBounds()
 
   for (let i = 0; i < gems.length; i++) {
     const g = gems[i]
@@ -206,8 +239,11 @@ function tryCollectGems(deltaTime) {
     const gb = g.getBounds()
     if (rectsTouching(pb, gb)) {
       const got = g.collect()
-      score += got
-      console.log('Collected gem +' + got)
+      if(got > 0){
+        score += got
+        window.__sound?.play('gem',{volume:0.7,rate:1});
+        console.log('Collected gem +' + got)
+      }
     }
   }
 
@@ -222,7 +258,7 @@ function tryCollectGems(deltaTime) {
 }
 
 function checkEnemyHit() {
-  const pb = player.getBounds()
+  const pb = player.getHitBounds()
 
   for (let i = 0; i < enemies.length; i++) {
     const e = enemies[i]
@@ -233,12 +269,14 @@ function checkEnemyHit() {
       // stomp
       if (player.velocity.y > 0 && player.y + player.height - 5 < e.y) {
         e.dead = true
+        window.__sound?.play('stomp',{volume:0.8})
         player.velocity.y = -150
         score = score + 30
       } else {
         if (player.invincible) return
 
         player.health -= 1
+        window.__sound?.play('hurt',{volume:0.9});
         player.velocity.y = -120
         player.invincible = true
         player.invincibleTime = 1
@@ -257,18 +295,19 @@ function checkEnemyHit() {
 }
 
 function checkDoor() {
-  const pb = player.getBounds()
+  const pb = player.getHitBounds()
   const db = door.getBounds()
 
   if (rectsTouching(pb, db)) {
     const anyLeft = gems.some((g) => !g.collected)
     if (anyLeft) return
+    window.__sound?.play('door',{volume:0.8});
     levelDone = true
   }
 }
 
 function checkCheckpointTouch() {
-  const pb = player.getBounds()
+  const pb = player.getHitBounds()
 
   for (let i = 0; i < checkpoints.length; i++) {
     const cp = checkpoints[i]
@@ -280,6 +319,7 @@ function checkCheckpointTouch() {
         cp.activated = true
         currentCheckpoint.x = cp.x
         currentCheckpoint.y = cp.y
+        window.__sound?.play('checkpoint',{volume:0.8})
       }
     }
   }
@@ -294,7 +334,7 @@ function animate() {
 
   if (!levelDone) {
     player.handleInput(keys)
-    player.update(deltaTime, collisionBlocks)
+    player.update(deltaTime, collisionBlocks, platforms)
 
     for (let i = 0; i < enemies.length; i++) {
       enemies[i].update(deltaTime, collisionBlocks)

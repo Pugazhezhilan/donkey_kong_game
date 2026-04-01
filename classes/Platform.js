@@ -23,7 +23,7 @@ class Platform{
       const currentBottom = player.hitbox.y + player.hitbox.height
       const previousBottom = player.previousHitboxY + player.hitbox.height
       const isFalling = player.velocity.y >= 0
-      const crossedPlatformTop = previousBottom <= this.y + LANDING_TOLERANCE && currentBottom >= this.y - LANDING_TOLERANCE
+      const crossedPlatformTop = previousBottom <= this.y && currentBottom >= this.y - LANDING_TOLERANCE;
 
       return (isFalling && crossedPlatformTop && player.hitbox.x + player.hitbox.width > this.x && player.hitbox.x < this.x + this.width)
     }
