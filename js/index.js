@@ -1,4 +1,5 @@
-const bgm = new Audio('./music/bg-music/platformer_level03_loop.ogg')
+const bgm = new Audio('./music/bg-music/platformer_level03_loop.mp3')
+bgm.preload = "auto"
 const sound = new window.Sound();
 const canvas = document.querySelector('canvas')
 const c = canvas.getContext('2d')
@@ -78,7 +79,11 @@ bgm.volume=0.35
 const unlockOnce = async() => {
   await sound.unlock();
   try{
-    await bgm.play()
+    bgm.play().then(()=>{
+      console.log("BGM PLAYING")
+    }).catch(err => {
+      console.log("BGM ERROR:", err);
+    })
   }
   catch(error){
     console.log(error);
@@ -87,10 +92,12 @@ const unlockOnce = async() => {
   window.removeEventListener('keydown', unlockOnce);
   window.removeEventListener('mousedown', unlockOnce);
   window.removeEventListener('touchstart', unlockOnce);
+  document.body.removeEventListener("click",unlockOnce);
 }
 window.addEventListener('keydown',unlockOnce);
 window.addEventListener('mousedown',unlockOnce);
 window.addEventListener('touchstart',unlockOnce);
+document.body.addEventListener("click",unlockOnce);
 window.__sound = sound;
 
 const collisionBlocks = []
