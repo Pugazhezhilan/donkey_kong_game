@@ -108,19 +108,69 @@ let currentCheckpoint = { x: 100, y: 100 }
 
 const keys = {w: {pressed: false}, a: {pressed: false}, d: {pressed: false}, s: {pressed: false}}
 
+const musicSettings = {
+  enabled: localStorage.getItem('music_enabled') != '0',
+  volume: Number(localStorage.getItem('music_volume') ?? '0.35')
+}
 bgm.loop=true
-bgm.volume=0.35
+bgm.volume=musicSettings.volume;
+
+const btn = document.getElementById('musicToggle');
+const slider = document.getElementById('musicVol');
+
+slider.value = String(musicSettings.volume)
+const updateMusicUI = () => {
+  btn.textContent = musicSettings.enabled ? 'Music: ON' : 'Music: OFF'
+  slider.disabled = !musicSettings.enabled
+}
+
+const applyMusic = async () => {
+  bgm.volume = musicSettings.volume;
+  if(!musicSettings.enabled){
+    bgm.pause();
+    bgm.currentTime = 0;
+    return;
+  }
+  if(sound?.unlocked){
+    try{
+      await bgm.play()
+    }
+    catch(error){
+      console.log(error);
+    }
+  }
+}
+
+btn.addEventListener('click', async() => {
+  musicSettings.enabled = !musicSettings.enabled
+  localStorage.setItem('music_enabled', musicSettings.enabled ? '1' : '0')
+  updateMusicUI();
+  await applyMusic();
+})
+
+slider.addEventListener('input', async (e) => {
+  musicSettings.volume = Number(e.target.value);
+  localStorage.setItem('music_volume', String(musicSettings.volume))
+  await applyMusic();
+})
+
+updateMusicUI();
+applyMusic();
+
 const unlockOnce = async() => {
   await sound.unlock();
-  try{
-    bgm.play().then(()=>{
+  if(musicSettings.enabled){
+    try{
+      await bgm.play();
       console.log("BGM PLAYING")
-    }).catch(err => {
-      console.log("BGM ERROR:", err);
-    })
+    }
+    catch(error){
+      console.log("BGM ERROR:", error);
+    }
   }
-  catch(error){
-    console.log(error);
+  else{
+    bgm.pause();
+    bgm.currentTime = 0;
   }
 
   window.removeEventListener('keydown', unlockOnce);
