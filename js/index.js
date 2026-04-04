@@ -257,15 +257,23 @@ if (typeof cameraSetWorldSizeFromLayer === 'function'){
   cameraSetWorldSizeFromLayer(l_Back_Tiles)
 }
 
-function drawHud(ctx) {
-  ctx.save()
-  ctx.fillStyle = 'rgba(0,0,0,0.5)'
-  ctx.fillRect(8, 8, 170, 28)
-
+function drawHud(ctx){
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(8,8,200,34)
   ctx.fillStyle = 'white'
-  ctx.font = '16px monospace'
-  ctx.fillText('SCORE: ' + score, 16, 28)
-  ctx.restore()
+  ctx.font = '16px monospace';
+  ctx.fillText('SCORE: '+score, 16, 30)
+  const full = player.health;
+  const max = player.maxHealth
+  let hearts = ''
+  for(let i=0;i<max;i++){
+    hearts += i < full ? '♥' : '♡'
+  }
+  ctx.fillStyle = 'red';
+  ctx.font = '18px monospace'
+  ctx.fillText(hearts, 130, 30);
+  ctx.restore();
 }
 
 function drawLevelComplete(ctx){
@@ -339,13 +347,14 @@ function checkEnemyHit(){
         player.invincible = true
         player.invincibleTime = 1
 
-        if (player.health <= 0) {
-          player.health = player.maxHealth
-          player.x = currentCheckpoint.x
-          player.y = currentCheckpoint.y
-          player.velocity.x = 0
-          player.velocity.y = 0
-          console.log('respawned at checkpoint')
+        if(player.health <= 0){
+          score = 0;
+          player.health = player.maxHealth;
+          player.x = currentCheckpoint.x;
+          player.y = currentCheckpoint.y;
+          player.velocity.x = 0;
+          player.velocity.y = 0;
+          console.log('respawned at checkpoint');
         }
       }
     }
@@ -361,11 +370,12 @@ function hurtPlayer(){
   player.invincibleTime = 1
 
   if(player.health <= 0){
+    score = 0;
     player.health = player.maxHealth;
     player.x = currentCheckpoint.x;
     player.y = currentCheckpoint.y;
-    player.velocity.x = 0
-    player.velocity.y = 0
+    player.velocity.x = 0;
+    player.velocity.y = 0;
     console.log('respawned at checkpoint');
   }
 }
