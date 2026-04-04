@@ -1,10 +1,13 @@
 window.addEventListener('keydown', (event) => {
   const key = event.key.toLowerCase()
-  if (["w", "a", "d", "arrowup", "arrowleft", "arrowright", " "].includes(key)) {
+  if (event.repeat && (key === 'w' || key === 'arrowup' || key === ' ')){
+    return
+  }
+  if (["w", "a", "d", "arrowup", "arrowleft", "arrowright", " "].includes(key)){
     event.preventDefault()
   }
 
-  switch (key) {
+  switch (key){
     case 'w':
     case 'arrowup':
     case ' ':
@@ -41,7 +44,6 @@ window.addEventListener('keyup', (event) => {
   }
 })
 
-// On return to game's tab, ensure delta time is reset
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) {
     lastTime = performance.now()

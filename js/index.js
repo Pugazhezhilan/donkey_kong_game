@@ -1,3 +1,4 @@
+console.log("index.js loaded")
 const bgm = new Audio('./music/bg-music/platformer_level03_loop.mp3')
 bgm.preload = "auto"
 const sound = new window.Sound();
@@ -6,6 +7,36 @@ const c = canvas.getContext('2d')
 const GAME_WIDTH = 1024
 const GAME_HEIGHT = 576
 const TILE_SIZE = 16
+const TS = 16
+const px = (t) => t*TS;
+let tx = 20
+let ty = 30
+
+if (window.__GAME_ALREADY_STARTED__){
+  throw new Error('index.js loaded more than once')
+} 
+window.__GAME_ALREADY_STARTED__ = true
+
+canvas.addEventListener('click', (e) => {
+  if(typeof camera === 'undefined')return
+  const rect = canvas.getBoundingClientRect()
+  const sx = (e.clientX - rect.left) * (GAME_WIDTH / rect.width)
+  const sy = (e.clientY - rect.top) * (GAME_HEIGHT / rect.height)
+  const worldX = Math.floor(sx + camera.x)
+  const worldY = Math.floor(sy + camera.y)
+  tx = Math.floor(worldX/16)
+  ty = Math.floor(worldY/16);
+  console.log('tile:', Math.floor(worldX/16), Math.floor(worldY/16), 'world:', worldX, worldY);
+
+  // if(frog){
+  //   frog.x = px(tx);
+  //   frog.y = px(ty) - frog.height;
+  //   const ok = placeOnGroundTopLeft(frog, [...collisionBlocks, ...platforms])
+  //   if(!ok){
+  //     console.log('No collision/platform under this X. Click on a real ground tile (collision layer).')
+  //   }
+  // }
+})
 
 let dpr = window.devicePixelRatio || 1
 const setCanvasSize = () => {
@@ -62,6 +93,9 @@ const enemies = []
 enemies.push(new Enemy({x: 300, y: 200}))
 enemies.push(new Enemy({x: 500, y: 150}))
 enemies.push(new Enemy({x: 700, y: 100}))
+
+let frog;
+let eagle;
 
 const door = new Door({ x: 900, y: 400 })
 
@@ -126,6 +160,23 @@ collisions.forEach((row, y) => {
   })
 })
 
+const frogX = WORLD_WIDTH - 340;
+eagle = new Eagle({x: px(40), y:px(11), minY: px(9), maxY: px(13)});
+frog = new Frog({x: frogX, y: 120, width: 32, height: 32, minX: frogX-80, maxX: frogX+30, moveSpeed: 40, jumpInterval: 1.6, jumpPower: 220, idleFrames: 4, jumpFrames: 3, frameInterval: 0.1})
+placeOnGroundTopLeft(frog, collisionBlocks)
+
+function placeOnGroundTopLeft(entity,blocks){
+  const bottom = entity.y+entity.height;
+  const candidates = blocks.filter(b => entity.x+entity.width>b.x && entity.x < b.x + b.width && b.y >= bottom).sort((a,b)=>a.y-b.y)
+  if(candidates.length > 0){
+    entity.y = candidates[0].y - entity.height;
+    if(entity.velocity)entity.velocity.y = 0;
+    entity.isOnGround = true;
+    return true
+  }
+  return false
+}
+
 const gems = []
 const makeGemsFromLayer = (gemsLayer) => {
   gems.length = 0
@@ -185,7 +236,7 @@ const renderStaticLayers = async () => {
   offscreenCanvas.height = WORLD_HEIGHT
   const offscreenContext = offscreenCanvas.getContext('2d')
 
-  for (const [layerName, tilesData] of Object.entries(layersData)) {
+  for (const [layerName, tilesData] of Object.entries(layersData)){
     if (layerName === 'l_Gems') continue
 
     const tilesetInfo = tilesets[layerName]
@@ -202,7 +253,7 @@ const renderStaticLayers = async () => {
   return offscreenCanvas
 }
 
-if (typeof cameraSetWorldSizeFromLayer === 'function') {
+if (typeof cameraSetWorldSizeFromLayer === 'function'){
   cameraSetWorldSizeFromLayer(l_Back_Tiles)
 }
 
@@ -217,7 +268,7 @@ function drawHud(ctx) {
   ctx.restore()
 }
 
-function drawLevelComplete(ctx) {
+function drawLevelComplete(ctx){
   ctx.save()
   ctx.fillStyle = 'rgba(0,0,0,0.65)'
   ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT)
@@ -232,19 +283,19 @@ function drawLevelComplete(ctx) {
   ctx.restore()
 }
 
-function tryCollectGems(deltaTime) {
+function tryCollectGems(deltaTime){
   if (levelDone) return
 
   const pb = player.getHitBounds()
 
-  for (let i = 0; i < gems.length; i++) {
+  for (let i = 0; i < gems.length; i++){
     const g = gems[i]
     g.update(deltaTime)
 
     if (g.collected) continue
 
     const gb = g.getBounds()
-    if (rectsTouching(pb, gb)) {
+    if (rectsTouching(pb, gb)){
       const got = g.collect()
       if(got > 0){
         score += got
@@ -255,7 +306,7 @@ function tryCollectGems(deltaTime) {
   }
 
   let left = 0
-  for (let i = 0; i < gems.length; i++) {
+  for (let i = 0; i < gems.length; i++){
     if (!gems[i].collected) left++
   }
 
@@ -264,17 +315,17 @@ function tryCollectGems(deltaTime) {
   }
 }
 
-function checkEnemyHit() {
+function checkEnemyHit(){
   const pb = player.getHitBounds()
 
-  for (let i = 0; i < enemies.length; i++) {
+  for (let i = 0;i < enemies.length;i++){
     const e = enemies[i]
     if (e.dead) continue
 
     const eb = e.getBounds()
     if (rectsTouching(pb, eb)) {
       // stomp
-      if (player.velocity.y > 0 && player.y + player.height - 5 < e.y) {
+      if (player.velocity.y > 0 && player.y + player.height - 5 < e.y){
         e.dead = true
         window.__sound?.play('stomp',{volume:0.8})
         player.velocity.y = -150
@@ -301,7 +352,40 @@ function checkEnemyHit() {
   }
 }
 
-function checkDoor() {
+function hurtPlayer(){
+  if(player.invincible)return;
+  player.health -= 1;
+  window.__sound?.play('hurt',{volume: 0.9})
+  player.velocity.y = -120
+  player.invincible = true
+  player.invincibleTime = 1
+
+  if(player.health <= 0){
+    player.health = player.maxHealth;
+    player.x = currentCheckpoint.x;
+    player.y = currentCheckpoint.y;
+    player.velocity.x = 0
+    player.velocity.y = 0
+    console.log('respawned at checkpoint');
+  }
+}
+
+function checkAnimalHazards(){
+  const pb = player.getHitBounds();
+  if(eagle && !eagle.dead){
+    if(rectsTouching(pb,eagle.getBounds())){
+      hurtPlayer();
+    }
+  }
+
+  if(frog && !frog.dead){
+    if(rectsTouching(pb, frog.getBounds())){
+      hurtPlayer();
+    }
+  }
+}
+
+function checkDoor(){
   const pb = player.getHitBounds()
   const db = door.getBounds()
 
@@ -343,11 +427,14 @@ function animate() {
     player.handleInput(keys)
     player.update(deltaTime, collisionBlocks, platforms)
 
+    frog.update(deltaTime, collisionBlocks);
+    eagle.update(deltaTime);
+
     for (let i = 0; i < enemies.length; i++) {
       enemies[i].update(deltaTime, collisionBlocks)
     }
 
-    for (let i = enemies.length - 1; i >= 0; i--) {
+    for (let i = enemies.length - 1; i >= 0; i--){
       if (enemies[i].dead) enemies.splice(i, 1)
     }
   } else {
@@ -355,7 +442,7 @@ function animate() {
     player.velocity.y = 0
   }
 
-  if (typeof cameraUpdate === 'function') {
+  if (typeof cameraUpdate === 'function'){
     cameraUpdate(deltaTime, player)
   } else {
     if (player.x > SCROLL_POST_RIGHT) {
@@ -379,6 +466,7 @@ function animate() {
 
   tryCollectGems(deltaTime)
   checkEnemyHit()
+  checkAnimalHazards();
   checkCheckpointTouch()
   checkDoor()
   c.save()
@@ -390,15 +478,17 @@ function animate() {
   if (backgroundCanvas) c.drawImage(backgroundCanvas, 0, 0)
 
   door.draw(c)
-
-  for (let i = 0; i < gems.length; i++) {
+  
+  for (let i = 0; i < gems.length; i++){
     gems[i].draw(c, gemsImage, 16)
   }
-
-  for (let i = 0; i < enemies.length; i++) {
+  
+  for (let i = 0; i < enemies.length; i++){
     enemies[i].draw(c, deltaTime)
   }
-
+  
+  eagle.draw(c, deltaTime)
+  frog.draw(c, deltaTime);
   player.draw(c, deltaTime)
   c.restore()
 
