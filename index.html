@@ -27,16 +27,97 @@
     height: min(100vh, calc(100vw*(576/1024)));
     display: block;
   }
+  .screen{
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.82);
+    z-index: 9998;
+    color: white;
+    font-family: monospace;
+    text-align: center;
+    padding: 24px;
+  }
+  .screen.show{
+    display: flex;
+  }
+  .panel{
+    width: min(680px, 92vw);
+    background: rgba(20, 20, 20, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 14px;
+    padding: 22px;
+  }
+  button{
+    cursor: pointer;
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.250);
+    background: rgba(255,255,255,0.08);
+    color: white;
+    font-family: monospace;
+  }
+  button:hover{
+    background: rgba(255,255,255,0.14);
+  }
+  ul{
+    text-align: left;
+    margin: 14px auto;
+    width: fit-content;
+  }
+  h1{
+    margin:0 0 8px;
+    font-size: 44px;
+  }
+  h2{
+    margin: 0 0 10px;
+  }
   </style>
 </head>
 <body>
-<canvas style="image-rendering: pixelated"></canvas>
+<canvas id="gameCanvas" style="image-rendering: pixelated"></canvas>
+  <div id="screen-cover" class="screen show">
+    <div class="panel">
+      <h1>Donkey Kong Run</h1>
+      <p style="margin: 10px 0 18px;">Collect all gems, then reach the door.</p>
+      <button id="btnToInstructions">Next</button>
+    </div>
+  </div>
+
+  <div id="screen-instructions" class="screen">
+    <div class="panel">
+      <h2>How to Play</h2>
+      <ul>
+        <li><b>A</b> = Move Left</li>
+        <li><b>D</b> = Move Right</li>
+        <li><b>W</b> = Jump</li>
+        <li>Collect all gems</li>
+        <li>Door works only after all gems are collected</li>
+      </ul>
+
+      <div style="display:flex; gap:10px; justify-content: center; margin-top: 14px">
+        <button id="btnBackToCover">Back</button>
+        <button id="btnStartGame">Start Game</button>
+      </div>
+    </div>
+  </div>
+
   <div id="sound-ui" style="position:fixed; top: 12px; right: 12px; background: rgba(0,0,0,0.55); padding: 10px 12px; border-radius: 10px; color: white; font: 14px monospace; z-index: 9999">
     <button id="musicToggle">Music: OK</button>
     <label style="margin-left:10px;">
       Vol
       <input id="musicVol" type="range" min="0" max="1" step="0.01"/>
     </label>
+
+    <div style="margin-top:8px">
+      <button id="sfxToggle">SFX: ON</button>
+      <label style="margin-left:26px;">
+        Vol
+        <input id="sfxVol" type="range" min="0" max="1" step="0.01"/>
+      </label> 
+    </div>
   </div>
     <script src="./data/l_Sky_Ocean.js"></script>
     <script src="./data/l_Bramble.js"></script>
@@ -59,6 +140,7 @@
     <script src="./classes/Player.js"></script>
     <script src="./js/camera.js"></script>
     <script src="./js/sound.js"></script>
+    <script src="./js/screen.js"></script>
     <script src="./js/index.js"></script>
     <script src="./js/eventListeners.js"></script>
 </body>

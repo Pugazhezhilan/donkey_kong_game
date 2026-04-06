@@ -12,10 +12,12 @@ const px = (t) => t*TS;
 let tx = 20
 let ty = 30
 
-if (window.__GAME_ALREADY_STARTED__){
-  throw new Error('index.js loaded more than once')
-} 
-window.__GAME_ALREADY_STARTED__ = true
+if(window.__GAME_ALREADY_STARTED__){
+  console.warn('index.js loaded more than once (ignoring)')
+}
+else{
+  window.__GAME_ALREADY_STARTED__ = true;
+}
 
 canvas.addEventListener('click', (e) => {
   if(typeof camera === 'undefined')return
@@ -108,75 +110,96 @@ let currentCheckpoint = { x: 100, y: 100 }
 
 const keys = {w: {pressed: false}, a: {pressed: false}, d: {pressed: false}, s: {pressed: false}}
 
-const musicSettings = {
-  enabled: localStorage.getItem('music_enabled') != '0',
-  volume: Number(localStorage.getItem('music_volume') ?? '0.35')
+const audioSettings = {
+  musicEnabled: localStorage.getItem('music_enabled') != '0',
+  musicVolume: Number(localStorage.getItem('music_volume') ?? '0.35'),
+
+  sfxEnabled: localStorage.getItem('sfx_enabled') != '0',
+  sfxVolume: Number(localStorage.getItem('sfx_volume') ?? '0.8'),
 }
+
 bgm.loop=true
-bgm.volume=musicSettings.volume;
+bgm.volume=audioSettings.musicVolume;
 
-const btn = document.getElementById('musicToggle');
-const slider = document.getElementById('musicVol');
+sound.masterVolume = audioSettings.sfxEnabled ? audioSettings.sfxVolume : 0
 
-slider.value = String(musicSettings.volume)
-const updateMusicUI = () => {
-  btn.textContent = musicSettings.enabled ? 'Music: ON' : 'Music: OFF'
-  slider.disabled = !musicSettings.enabled
+const musicBtn = document.getElementById('musicToggle');
+const musicSlider = document.getElementById('musicVol');
+const sfxBtn = document.getElementById('sfxToggle')
+const sfxSlider = document.getElementById('sfxVol')
+
+if(musicSlider)musicSlider.value = String(audioSettings.musicVolume)
+if(sfxSlider)sfxSlider.value = String(audioSettings.sfxVolume);
+
+const updateAudioUI = () => {
+  if(musicBtn)musicBtn.textContent = audioSettings.musicEnabled ? 'Music: ON' : 'Music: OFF'
+  if(musicSlider)musicSlider.disabled = !audioSettings.musicEnabled
+  if(sfxBtn)sfxBtn.textContent = audioSettings.sfxEnabled ? 'SFX: ON':'SFX: OFF'
+  if(sfxSlider)sfxSlider.disabled = !audioSettings.sfxEnabled
 }
 
-const applyMusic = async () => {
-  bgm.volume = musicSettings.volume;
-  if(!musicSettings.enabled){
+const applyAudio = async () => {
+  bgm.volume = audioSettings.musicVolume;
+  if(!audioSettings.musicEnabled){
     bgm.pause();
     bgm.currentTime = 0;
-    return;
   }
-  if(sound?.unlocked){
-    try{
-      await bgm.play()
-    }
-    catch(error){
-      console.log(error);
-    }
-  }
-}
-
-btn.addEventListener('click', async() => {
-  musicSettings.enabled = !musicSettings.enabled
-  localStorage.setItem('music_enabled', musicSettings.enabled ? '1' : '0')
-  updateMusicUI();
-  await applyMusic();
-})
-
-slider.addEventListener('input', async (e) => {
-  musicSettings.volume = Number(e.target.value);
-  localStorage.setItem('music_volume', String(musicSettings.volume))
-  await applyMusic();
-})
-
-updateMusicUI();
-applyMusic();
-
-const unlockOnce = async() => {
-  await sound.unlock();
-  if(musicSettings.enabled){
+  else if(sound?.unlocked){
     try{
       await bgm.play();
-      console.log("BGM PLAYING")
     }
     catch(error){
       console.log("BGM ERROR:", error);
     }
   }
-  else{
-    bgm.pause();
-    bgm.currentTime = 0;
-  }
+  sound.masterVolume = audioSettings.sfxEnabled ? audioSettings.sfxVolume : 0
+}
 
-  window.removeEventListener('keydown', unlockOnce);
-  window.removeEventListener('mousedown', unlockOnce);
-  window.removeEventListener('touchstart', unlockOnce);
-  document.body.removeEventListener("click",unlockOnce);
+if(musicBtn){
+  musicBtn.addEventListener('click', async () => {
+    audioSettings.musicEnabled = !audioSettings.musicEnabled
+    localStorage.setItem('music_enabled', audioSettings.musicEnabled ? '1' : '0')
+    updateAudioUI()
+    await applyAudio()
+  })
+}
+
+if(musicSlider){
+  musicSlider.addEventListener('input', async (e) => {
+    audioSettings.musicVolume = Number(e.target.value);
+    localStorage.setItem('music_volume', String(audioSettings.musicVolume));
+    await applyAudio();
+  })
+}
+
+if(sfxBtn){
+  sfxBtn.addEventListener('click', () => {
+    audioSettings.sfxEnabled = !audioSettings.sfxEnabled
+    localStorage.setItem('sfx_enabled', audioSettings.sfxEnabled ? '1' : '0');
+    updateAudioUI();
+    applyAudio();
+  })
+}
+
+if(sfxSlider){
+  sfxSlider.addEventListener('input', (e) => {
+    audioSettings.sfxVolume = Number(e.target.value);
+    localStorage.setItem('sfx_volume',String(audioSettings.sfxVolume))
+    applyAudio()
+  })
+}
+
+updateAudioUI();
+applyAudio();
+
+const unlockOnce = async() => {
+  await sound.unlock();
+  await applyAudio();
+
+  window.removeEventListener('keydown',unlockOnce);
+  window.removeEventListener('mousedown',unlockOnce);
+  window.removeEventListener('touchstart',unlockOnce);
+  document.body.removeEventListener('click', unlockOnce)
 }
 window.addEventListener('keydown',unlockOnce);
 window.addEventListener('mousedown',unlockOnce);
@@ -582,4 +605,8 @@ window.addEventListener('resize', async () => {
   backgroundCanvas = await renderStaticLayers()
 })
 
-startRendering()
+window.startGameRendering = () => {
+  if(window.__RENDERING_STARTED__)return;
+  window.__RENDERING_STARTED__ = true;
+  startRendering();
+};
