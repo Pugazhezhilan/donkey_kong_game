@@ -192,6 +192,39 @@ if(sfxSlider){
 updateAudioUI();
 applyAudio();
 
+let paused = false;
+const pauseBtn = document.getElementById('pauseToggle');
+const pauseOverlay = document.getElementById('pause-overlay');
+const setPaused = (value) => {
+  paused = value;
+  if(pauseBtn){
+    pauseBtn.textContent = paused ? 'Resume' : 'Pause';
+  }
+  if(pauseOverlay){
+    pauseOverlay.style.display = paused ? 'flex' : 'none';
+  }
+  if(paused){
+    bgm.paused();
+  }
+  else{
+    applyAudio();
+  }
+};
+
+const togglePaused = () => {
+  setPaused(!paused);
+}
+
+if(pauseBtn){
+  pauseBtn.addEventListener('click',togglePaused);
+}
+
+window.addEventListener('keydown',(e)=>{
+  if(e.key === 'p' || e.key === 'P'){
+    togglePaused();
+  }
+})
+
 const unlockOnce = async() => {
   await sound.unlock();
   await applyAudio();
@@ -494,22 +527,29 @@ function animate(){
   const deltaTime = Math.min((currentTime - lastTime) / 1000, 1 / 30)
   lastTime = currentTime
 
-  if (!levelDone){
-    player.handleInput(keys)
-    player.update(deltaTime, collisionBlocks, platforms)
+  if(!levelDone && !paused){
+    player.handleInput(keys);
+    player.update(deltaTime, collisionBlocks, platforms);
     frog.update(deltaTime, collisionBlocks);
     eagle.update(deltaTime);
 
-    for (let i = 0; i < enemies.length; i++){
-      enemies[i].update(deltaTime, collisionBlocks)
+    for(let i=0;i<enemies.length;i++){
+      enemies[i].update(deltaTime, collisionBlocks);
     }
 
-    for (let i = enemies.length - 1; i >= 0; i--){
-      if (enemies[i].dead) enemies.splice(i, 1)
+    for(let i=enemies.length-1;i>=0;i--){
+      if(enemies[i].dead)enemies.splice(i,1);
     }
-  } else {
-    player.velocity.x = 0
-    player.velocity.y = 0
+
+    tryCollectGems(deltaTime);
+    checkEnemyHit();
+    checkAnimalHazards();
+    checkCheckpointTouch();
+    checkDoor();
+  }
+  else{
+    player.velocity.x = 0;
+    player.velocity.y = 0;
   }
 
   if (typeof cameraUpdate === 'function'){
