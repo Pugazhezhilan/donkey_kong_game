@@ -1,218 +1,958 @@
 <!DOCTYPE html>
 <html>
-<head>  
-  <meta charset = "utf-8">
+<head>
+  <meta charset="utf-8">
   <title>Donkey Kong Run</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <style>
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
-  html,body {
-    width:100%;
-    height:100%;
-    background: black;
-    overflow:hidden;
-  }
-  body{
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  canvas {
-    image-rendering: pixelated;
-    image-rendering: crisp-edges;
-    width: min(100vw, calc(100vh*(1024/576)));
-    height: min(100vh, calc(100vw*(576/1024)));
-    display: block;
-  }
-  .screen{
-    position: fixed;
-    inset: 0;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 9998;
-    color: #eaf2ff;
-    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
-    text-align: center;
-    padding: 24px;
-    background:
-      radial-gradient(1200px 600px at 50% 30%, rgba(64, 160, 255, 0.18), transparent 60%),
-      radial-gradient(1200px 500px at 20% 70%, rgba(255, 120, 160, 0.12), transparent 55%),
-      linear-gradient(180deg, rgba(2,6,20,0.92), rgba(0,0,0,0.92));
-    backdrop-filter: blur(6px);
-  }
-  .screen.show{
-    display: flex;
-  }
-  .screen::before{
-    content:"";
-    position: absolute;
-    inset: 0;
-    background-image: radial-gradient(rgba(255,255,255,0.12) 1px, transparent 1px);
-    background-size: 28px 28px;
-    opacity: 0.35;
-    animation: drift 18s linear infinite;
-    pointer-events: none;
-  }
-  @keyframes drift{
-    from{
-      transform: translate3d(0,0,0)
+    *, *::before, *::after{
+      box-sizing: border-box;
+      margin: 0; 
+      padding: 0; 
     }
-    to{
-      transform: translate3d(-120px, 80px, 0)
+    html, body{
+      width: 100%; height: 100%;
+      background: #000;
+      overflow: hidden;
     }
-  }
-  .panel{
-    position: relative;
-    width: min(720px, 94vw);
-    border-radius: 18px;
-    padding: 26px 24px;
-    background: linear-gradient(180deg, rgba(20,26,44,0.92),rgba(12,14,22,0.88));
-    border: 1px solid rgba(140, 180, 255, 0.18);
-    box-shadow:
-      0 20px 80px rgba(0,0,0,0.65),
-      0 0 0 1px rgba(255,255,255,0.06);
-  }
-  .panel::after{
-    content:"";
-    position:absolute;
-    inset:-1px;
-    border-radius:18px;
-    background: linear-gradient(90deg, rgba(80,170,255,0.35), rgba(255,120,180,0.25), rgba(80,225,190,0.20));
-    filter: blur(18px);
-    opacity: 0.35;
-    z-index: -1;
-  }
-  h1{
-    margin: 0 0 8px;
-    font-size: clamp(38px, 5vw, 56px);
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    text-shadow: 0 10px 30px rgba(0,0,0,0.6);
-  }
-  h2{
-    margin: 0 0 10px;
-    font-size: clamp(26px, 3.2vw, 34px);
-    letter-spacing: 0.5px;
-  }
-  .tagline{
-    opacity: 0.9;
-    margin: 10px 0 18px;
-    font-size: 16px;
-  }
-  button{
-    cursor: pointer;
-    padding: 12px 18px;
-    border-radius: 14px;
-    border: 1px solid rgba(255,255,255,0.14);
-    color: #eaf2ff;
-    font-weight: 700;
-    letter-spacing: 0.4px;
-    background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06));
-    box-shadow:
-      0 10px 24px rgba(0,0,0,0.35),
-      0 0 0 1px rgba(255,255,255,0.05) inset;
-    transition: transform 120ms ease, filter 120ms ease, background 120ms ease;
-  }
-  button:hover{
-    transform: translateY(-1px);
-    filter: brightness(1.08);
-  }
-  button:active{
-    transform: translateY(0px) scale(0.99);
-  }
-  .btn-primary{
-    border: 1px solid rgba(80,170,255,0.35);
-    background: linear-gradient(180deg, rgba(80,170,255,0.35), rgba(80,170,255,0.12));
-  }
-  .btn-danger{
-    border: 1px solid rgba(255,120,120,0.35);
-    background: linear-gradient(180deg, rgba(255,120,120,0.30), rgba(255,120,120,0.10));
-  }
-  kbd{
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 8px;
-    background: rgba(255,255,255,0.10);
-    border: 1px solid rgba(255,255,255,0.12);
-    box-shadow: 0 2px 10px rgba(0,0,0,0.25);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-    font-size: 13px;
-  }
-  .instructions{
-    text-align: left;
-    margin: 14px auto 0;
-    width: min(520px, 92vw);
-    opacity: 0.95;
-    line-height: 1.65;
-  }
-  .hint-row{
-    display: flex;
-    gap:10px;
-    justify-content: center;
-    flex-wrap: wrap;
-    margin-top: 14px;
-    opacity: 0.95;
-  }
-  .footer-hint{
-    margin-top: 14px;
-    opacity: 0.75;
-    font-size: 13px;
-  }
-  ul{
-    text-align: left;
-    margin: 14px auto;
-    width: fit-content;
-  }
+    body{
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    canvas{
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      width: min(100vw, calc(100vh*(1024/576)));
+      height: min(100vh, calc(100vw*(576/1024)));
+      display: block;
+    }
+    .screen {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9998;
+      font-family: 'Press Start 2P', monospace;
+      overflow: hidden;
+    }
+    .screen.show {display: flex;}
+    .sky-bg{
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+      180deg,
+      #3ecfef 0%,
+      #6de0f7 30%,
+      #a8eefc 55%,
+      #c5f5d8 72%,
+      #5a9e3a 85%,
+      #4a7c28 100%);
+      z-index: 0;
+    }
+    .sun{
+      position: absolute;
+      top: 36px; 
+      right: 12%;
+      width: 64px; 
+      height: 64px;
+      background: #ffe94d;
+      border-radius: 50%;
+      box-shadow: 0 0 0 8px rgba(255,233,77,0.3), 0 0 0 18px rgba(255,233,77,0.12);
+      animation: sunpulse 3s ease-in-out infinite;
+      z-index: 1;
+    }
+    @keyframes sunpulse {
+      0%,100%{
+        box-shadow: 0 0 0 8px rgba(255,233,77,0.3), 0 0 0 18px rgba(255,233,77,0.12)
+      }
+      50%{box-shadow: 0 0 0 14px rgba(255,233,77,0.25), 0 0 0 30px rgba(255,233,77,0.08)
+      }
+    }
+
+    /* Clouds */
+    .cloud-layer{
+      position:absolute;
+      top: 0; 
+      left: 0;
+      width:200%;
+      height: 45%;
+      z-index: 1;
+      pointer-events: none;
+    }
+    .cloud{
+      position: absolute;
+      background: rgba(255,255,255,0.88);
+      border-radius: 50px;
+    }
+    .cloud::before,.cloud::after{
+      content: '';
+      position: absolute;
+      background: rgba(255,255,255,0.88);
+      border-radius: 50%;
+    }
+    .cl1{
+      top:14%;
+      left:8%; 
+      width:110px; 
+      height:28px;
+      animation: driftA 22s linear infinite; 
+    }
+    .cl1::before{
+      width:54px;
+      height:44px;
+      top:-22px;
+      left:14px;
+    }
+    .cl1::after{
+      width:40px;
+      height:36px;
+      top:-16px;
+      left:52px;
+    }
+    .cl2{
+      top:22%;
+      left:40%;
+      width:90px;
+      height:22px;
+      animation:driftA 30s linear infinite 6s;
+    }
+    .cl2::before{
+      width:44px;
+      height:38px;
+      top:-20px;
+      left:10px;
+    }
+    .cl2::after{
+      width:36px;
+      height:30px;
+      top:-14px;
+      left:42px;
+    }
+    .cl3{
+      top:8%;
+      left:70%;
+      width:130px;
+      height:32px;
+      animation:driftA 26s linear infinite 3s;
+    }
+    .cl3::before{
+      width:60px;
+      height:52px;
+      top:-26px;
+      left:18px;
+    }
+    .cl3::after{
+      width:48px;
+      height:42px;
+      top:-20px;
+      left:64px;
+    }
+    @keyframes driftA{
+      from{
+        transform: translateX(0);
+      }
+      to{
+        transform: translateX(-50vw)
+      }
+    }
+    .tree-row {
+      position: absolute;
+      bottom: 22%;
+      left:0;
+      width: 100%;
+      height: 200px;
+      z-index: 2;
+      display:flex;
+      align-items: flex-end;
+      gap: 0;
+      pointer-events: none;
+    }
+    .tree-group{
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+    }
+    .tree{
+      display:flex;
+      flex-direction: column;
+      align-items: center;
+      animation:treesway 4s ease-in-out infinite;
+    }
+    .tree:nth-child(even){
+      animation-delay: -2s;
+    }
+    @keyframes treesway{
+      0%,100%{
+        transform-origin: bottom center; transform: rotate(0deg);
+      }
+      50%{
+        transform-origin: bottom center; transform: rotate(1.2deg);
+      }
+    }
+    .tree-crown{
+      background: #2d7a2d;
+      clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+    }
+    .tree-crown2{
+      background: #3d9e3d;
+      clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+      margin-top: -14px;
+    }
+    .tree-trunk-px{
+      background: #6b3c1e;
+    }
+
+    .ground-strip{
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      z-index: 3;
+      pointer-events: none;
+    }
+    .grass-top{
+      height: 18px;
+      background: repeating-linear-gradient(
+        90deg,
+        #5dc45d 0px, #5dc45d 31px,
+        #4aaa4a 32px, #4aaa4a 63px
+      );
+      border-top:3px solid #7de07d;
+    }
+    .dirt-body{
+      height: 80px;
+      background: repeating-linear-gradient(
+        90deg,
+        #7a4b22 0px, #7a4b22 31px,
+        #6b3c1e 32px, #6b3c1e 63px
+      );
+      border-top: 2px solid #8c5a2e;
+    }
+    .dirt-dark{
+      height: 28px;
+      background: #4a2810;
+    }
+    .platform{
+      position: absolute;
+      z-index: 4;
+      pointer-events: none;
+    }
+    .platform-grass{
+      height: 14px;
+      background: #5dc45d;
+      border-top: 2px solid #7de07d;
+      border-radius: 3px 3px 0 0;
+    }
+    .platform-dirt{
+      height: 10px;
+      background: #7a4b22;
+      border-radius: 0 0 3px 3px;
+      border-bottom: 2px solid #4a2810;
+    }
+    .gem-float{
+      position: absolute;
+      z-index: 5;
+      pointer-events: none;
+    }
+    .gem-svg{
+      animation: gemfloat 2.4s ease-in-out infinite;
+      filter: drop-shadow(0 0 8px rgba(220,120,255,0.8));
+    }
+    .gem-svg:nth-child(2){
+      animation-delay: -0.4s;
+    }
+    .gem-svg:nth-child(3){
+      animation-delay: -0.8s;
+    }
+    .gem-svg:nth-child(4){
+      animation-delay: -1.2s;
+    }
+    .gem-svg:nth-child(5){
+      animation-delay: -1.6s;
+    }
+    .gem-svg:nth-child(6){
+      animation-delay: -2.0s;
+    }
+    @keyframes gemfloat{
+      0%,100% {
+        transform: translateY(0) rotate(0deg);
+      }
+      50%{
+        transform:translateY(-8px) rotate(8deg);
+      }
+    }
+    .character{
+      position: absolute;
+      z-index: 6;
+      bottom: 20%;
+      left: 18%;
+      animation: charbob 0.55s steps(2) infinite;
+    }
+    @keyframes charbob{
+      0%{
+        transform: translateY(0);
+      }
+      100%{
+        transform: translateY(-4px);
+      }
+    }
+    .fox-sprite {
+      position: absolute;
+      z-index: 5;
+      bottom: 19.5%;
+      left: 6%;
+      animation: foxwalk 0.5s steps(2) infinite;
+    }
+    @keyframes foxwalk {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(4px); }
+    }
+    .eagle-sprite {
+      position: absolute;
+      z-index: 6;
+      top: 28%;
+      right: 24%;
+      animation: eagleglide 3s ease-in-out infinite;
+    }
+    @keyframes eagleglide{
+      0%,100%{
+        transform: translateY(0) rotate(-3deg);
+      }
+      50%{
+        transform: translateY(-20px) rotate(3deg);
+      }
+    }
+
+    .cottage{
+      position: absolute;
+      z-index: 4;
+      bottom: 19%;
+      left: 1%;
+      pointer-events: none;
+    }
+    .door-sprite{
+      position: absolute;
+      z-index: 5;
+      bottom: 19%;
+      right: 6%;
+      animation: doorglow 2s ease-in-out infinite;
+    }
+    @keyframes doorglow{
+      0%,100%{
+        filter:drop-shadow(0 0 6px rgba(255,220,50,0.6));
+      }
+      50%{
+        filter:drop-shadow(0 0 16px rgba(255,220,50,1.0));
+      }
+    }
+
+    .hud-score{
+      position: absolute;
+      top: 16px; left: 16px;
+      background: rgba(0,0,0,0.55);
+      border: 2px solid rgba(255,255,255,0.2);
+      color: #fff;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 11px;
+      padding: 8px 14px;
+      z-index: 9;
+      pointer-events: none;
+      letter-spacing: 1px;
+    }
+    .hud-hearts{
+      color: #ff4444;
+      margin-left: 8px;
+    }
+
+    .panel {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      width: min(480px, 90vw);
+      border: 4px solid #1a0d00;
+      outline: 4px solid #ffe066;
+      outline-offset: -8px;
+      background: rgba(8, 4, 16, 0.87);
+      padding: 32px 28px 26px;
+      image-rendering: pixelated;
+    }
+
+    .panel::after{
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 3px,
+        rgba(0,0,0,0.08) 3px,
+        rgba(0,0,0,0.08) 4px
+      );
+      pointer-events: none;
+      z-index: 0;
+    }
+    .panel>* {
+      position: relative;
+      z-index: 1;
+    }
+
+    .panel-corner{
+      position: absolute;
+      width: 10px; height: 10px;
+      background: #ffe066;
+      z-index: 2;
+    }
+    .pc-tl {
+      top:-4px;
+      left: -4px;
+    }
+    .pc-tr{
+      top:-4px;
+      right:-4px;
+    }
+    .pc-bl{
+      bottom:-4px;
+      left: -4px;
+    }
+    .pc-br{
+      bottom:-4px;
+      right:-4px;
+    }
+    .game-title-sub{
+      font-family: 'Press Start 2P', monospace;
+      font-size:clamp(9px, 1.6vw, 12px);
+      color: #7de07d;
+      letter-spacing: 4px;
+      text-shadow: 2px 2px 0 #1a4a1a;
+      margin-bottom: 6px;
+      text-align: center;
+    }
+    .game-title-main{
+      font-family:'Press Start 2P', monospace;
+      font-size: clamp(18px, 3.8vw, 30px);
+      color: #ffe066;
+      text-shadow: 3px 3px 0 #b85a00,
+        6px 6px 0 rgba(0,0,0,0.5);
+      letter-spacing: 1px;
+      text-align: center;
+      line-height: 1.4;
+      margin-bottom: 4px;
+    }
+    .game-title-main span{
+      color: #ff6b6b;
+      text-shadow: 3px 3px 0 #800000, 6px 6px 0 rgba(0,0,0,0.5);
+    }
+    .gem-row-title{
+      display: flex;
+      gap: 6px;
+      margin: 10px 0 18px;
+      justify-content: center;
+    }
+    .tagline {
+      font-family: 'Press Start 2P', monospace;
+      font-size: clamp(6px, 1.1vw, 8px);
+      color: #b0e8ff;
+      text-align: center;
+      line-height: 2;
+      margin-bottom: 20px;
+      letter-spacing: 1px;
+    }
+    .pk-btn{
+      cursor: pointer;
+      font-family: 'Press Start 2P', monospace;
+      font-size: clamp(8px, 1.4vw, 11px);
+      letter-spacing: 1px;
+      border: none;
+      padding: 0;
+      background: none;
+      display: inline-block;
+      position: relative;
+      transition: transform 80ms;
+      user-select: none;
+    }
+    .pk-btn:active{
+      transform: translateY(3px);
+    }
+    .pk-btn:active .btn-face{
+      transform: translateY(3px); box-shadow: 0 1px 0 #7a3800;
+    }
+    .btn-face{
+      display: block;
+      padding: 11px 22px;
+      background: #ffe066;
+      color: #1a0a00;
+      border: 2px solid #b85a00;
+      box-shadow: 0 4px 0 #7a3800;
+      transition: box-shadow 80ms, transform 80ms;
+    }
+    .pk-btn:hover .btn-face{
+      background: #ffd030;
+      box-shadow:0 5px 0 #7a3800;
+      transform: translateY(-1px);
+    }
+
+    .pk-btn.secondary .btn-face{
+      background: rgba(255,255,255,0.06);
+      color: #ffe066;
+      border-color: #ffe066;
+      box-shadow: 0 4px 0 rgba(184,90,0,0.5);
+    }
+    .pk-btn.secondary:hover .btn-face{
+      background: rgba(255,220,100,0.1);
+    }
+
+    .btn-row{
+      display:flex;
+      gap: 14px;
+      justify-content:center;
+      flex-wrap:
+      wrap;
+    }
+
+    /* Blinking START indicator */
+    .blink-hint{
+      font-size: clamp(6px, 1vw, 8px);
+      color:#7de07d;
+      letter-spacing: 2px;
+      margin-top:16px;
+      animation: blink 1s steps(1) infinite;
+    }
+    @keyframes blink{
+      0%,49%{
+        opacity: 1;
+      } 
+      50%,100%{
+        opacity: 0;
+      }}
+    .controls-grid{
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin:14px 0 20px;
+    }
+    .ctrl-row{
+      display: flex;
+      align-items:center;
+      gap: 14px;
+      font-size: clamp(6px, 1.1vw, 8px);
+      color: #d0e8ff;
+      letter-spacing: 1px;
+      border-bottom: 1px solid rgba(255,220,100,0.1);
+      padding-bottom: 10px;
+    }
+    .ctrl-row:last-child{
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+    .key-cap{
+      background:#ffe066;
+      color: #1a0a00;
+      font-family: 'Press Start 2P', monospace;
+      font-size: clamp(8px, 1.3vw, 10px);
+      padding: 5px 10px;
+      border: 2px solid #b85a00;
+      box-shadow: 0 3px 0 #7a3800;
+      min-width: 38px;
+      text-align: center;
+      flex-shrink: 0;
+      display: inline-block;
+    }
+    .ctrl-desc{
+      flex: 1;
+    }
+    .obj-row{
+      display: flex;
+      align-items:center;
+      gap: 10px;
+      font-size: clamp(6px, 1.1vw, 8px);
+      color:#d0e8ff;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+
+    .divider{
+      width:100%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #ffe066, transparent);
+      margin: 10px 0 14px;
+    }
+
+    .panel-title{
+      font-family: 'Press Start 2P', monospace;
+      font-size: clamp(10px, 1.8vw, 14px);
+      color: #ffe066;
+      text-shadow:2px 2px 0 #7a3800;
+      margin-bottom: 4px;
+      text-align: center;
+      letter-spacing: 2px;
+    }
+
+    @keyframes slideOutLeft{
+      to{
+        transform:translateX(-100%);
+        opacity:0;
+      }}
+    @keyframes slideOutRight{
+      to{
+        transform:translateX(100%);
+        opacity:0;
+      }}
+    @keyframes slideInLeft
+    {
+      from{
+        transform:translateX(-60%);
+        opacity: 0;
+      }}
+    @keyframes slideInRight{
+      from{
+        transform: translateX(60%);
+        opacity: 0;
+      }}
+    .slide-out-left{
+      animation: slideOutLeft 320ms ease forwards;
+    }
+    .slide-out-right{
+      animation: slideOutRight 320ms ease forwards;
+    }
+    .slide-in-left{
+      animation: slideInLeft 320ms ease forwards;
+    }
+    .slide-in-right{
+      animation:slideInRight 320ms ease forwards;
+    }
+
+    #sound-ui{
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      background: rgba(0,0,0,0.7);
+      border: 2px solid rgba(255,220,100,0.4);
+      padding: 10px 14px;
+      border-radius: 0;
+      color: white;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 9px;
+      z-index: 9999;
+      display: none;
+    }
+    #sound-ui button{
+      background:rgba(255,220,100,0.15);
+      border: 1px solid rgba(255,220,100,0.4);
+      color: #ffe066;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      padding: 5px 8px;
+      cursor: pointer;
+    }
+    #sound-ui label{
+      color:#b0d8ff; font-size: 8px;
+    }
+    #sound-ui input[type=range]{
+      width: 70px; vertical-align: middle;
+    }
   </style>
 </head>
 <body>
-<canvas id="gameCanvas" style="image-rendering: pixelated"></canvas>
-  <div id="screen-cover" class="screen show">
-    <div class="panel">
-      <h1>Donkey Kong Run</h1>
-      <p class="tagline">Collect all gems, then reach the door.</p>
-      <button id="btnToInstructions" class="btn-primary">Next</button>
-      <div class="footer-hint">Tip: click Start Game to enable sound</div>
-    </div>
+
+<canvas id="gameCanvas"></canvas>
+<div id="screen-cover" class="screen show">
+
+  <div class="sky-bg"></div>
+  <div class="sun"></div>
+
+  <div class="cloud-layer">
+    <div class="cloud cl1"></div>
+    <div class="cloud cl2"></div>
+    <div class="cloud cl3"></div>
   </div>
 
-  <div id="screen-instructions" class="screen">
-    <div class="panel">
-      <h2>How to Play</h2>
-      <ul>
-        <li><b>A</b> = Move Left</li>
-        <li><b>D</b> = Move Right</li>
-        <li><b>W</b> = Jump</li>
-        <li>Collect all gems</li>
-        <li>Door works only after all gems are collected</li>
-      </ul>
+  <div class="hud-score" aria-hidden="true">
+    SCORE: 0 <span class="hud-hearts">♥♥♥</span>
+  </div>
 
-      <div style="display:flex; gap:10px; justify-content: center; margin-top: 14px">
-        <button id="btnBackToCover">Back</button>
-        <button id="btnStartGame">Start Game</button>
+  <div class="tree-row" aria-hidden="true">
+    <div style="margin-left:2%;display:flex;gap:4px;align-items:flex-end;">
+      <div class="tree" style="--h1:90px;--h2:70px;--tw:56px;">
+        <div class="tree-crown"  style="width:72px;height:64px;"></div>
+        <div class="tree-crown2" style="width:56px;height:50px;"></div>
+        <div class="tree-trunk-px" style="width:12px;height:28px;"></div>
+      </div>
+      <div class="tree" style="animation-delay:-1s;">
+        <div class="tree-crown"  style="width:58px;height:52px;background:#2d7a2d;clip-path:polygon(50% 0%,100% 100%,0% 100%);"></div>
+        <div class="tree-crown2" style="width:44px;height:40px;background:#3d9e3d;clip-path:polygon(50% 0%,100% 100%,0% 100%);margin-top:-12px;"></div>
+        <div class="tree-trunk-px" style="width:10px;height:22px;background:#6b3c1e;"></div>
+      </div>
+    </div>
+    <div style="flex:1;"></div>
+    <!-- tree group right -->
+    <div style="margin-right:2%;display:flex;gap:4px;align-items:flex-end;">
+      <div class="tree">
+        <div class="tree-crown"  style="width:62px;height:56px;background:#2d7a2d;clip-path:polygon(50% 0%,100% 100%,0% 100%);"></div>
+        <div class="tree-crown2" style="width:46px;height:44px;background:#3d9e3d;clip-path:polygon(50% 0%,100% 100%,0% 100%);margin-top:-13px;"></div>
+        <div style="width:10px;height:24px;background:#6b3c1e;"></div>
+      </div>
+      <div class="tree" style="animation-delay:-3s;">
+        <div class="tree-crown"  style="width:78px;height:68px;background:#1f6a1f;clip-path:polygon(50% 0%,100% 100%,0% 100%);"></div>
+        <div class="tree-crown2" style="width:60px;height:52px;background:#2d8a2d;clip-path:polygon(50% 0%,100% 100%,0% 100%);margin-top:-14px;"></div>
+        <div style="width:14px;height:32px;background:#6b3c1e;"></div>
       </div>
     </div>
   </div>
 
-  <div id="sound-ui" style="position:fixed; top: 12px; right: 12px; background: rgba(0,0,0,0.55); padding: 10px 12px; border-radius: 10px; color: white; font: 14px monospace; z-index: 9999; display: none;">
-    <button id="musicToggle">Music: OK</button>
-    <label style="margin-left:10px;">
-      Vol
-      <input id="musicVol" type="range" min="0" max="1" step="0.01"/>
-    </label>
+  <div class="cottage" aria-hidden="true">
+    <svg width="86" height="90" viewBox="0 0 86 90" style="image-rendering:pixelated;">
 
-    <div style="margin-top:8px">
-      <button id="sfxToggle">SFX: ON</button>
-      <label style="margin-left:26px;">
-        Vol
-        <input id="sfxVol" type="range" min="0" max="1" step="0.01"/>
-      </label> 
+      <polygon points="43,0 86,36 0,36" fill="#c14b2e"/>
+      <polygon points="43,2 84,36 2,36" fill="#d4603e"/>
+
+      <rect x="58" y="10" width="10" height="24" fill="#8c5a3a"/>
+      <rect x="4" y="34" width="78" height="56" fill="#c8a878"/>
+      <rect x="4" y="34" width="78" height="4"  fill="#a88858"/>
+      <rect x="33" y="66" width="20" height="24" fill="#6b3c1e"/>
+      <rect x="33" y="66" width="20" height="3"  fill="#8c5a2e"/>
+
+      <circle cx="51" cy="78" r="2" fill="#ffe066"/>
+  
+      <rect x="10" y="46" width="22" height="18" fill="#9ad4e8" rx="1"/>
+      <rect x="10" y="46" width="22" height="2"  fill="#5aaccc"/>
+      <rect x="20" y="46" width="2"  height="18" fill="#5aaccc"/>
+      <rect x="10" y="55" width="22" height="2"  fill="#5aaccc"/>
+      <rect x="54" y="46" width="22" height="18" fill="#9ad4e8" rx="1"/>
+      <rect x="54" y="46" width="22" height="2"  fill="#5aaccc"/>
+      <rect x="64" y="46" width="2"  height="18" fill="#5aaccc"/>
+      <rect x="54" y="55" width="22" height="2"  fill="#5aaccc"/>
+      <rect x="0"  y="88" width="86" height="6"  fill="#5dc45d"/>
+    </svg>
+  </div>
+
+  <div class="fox-sprite" aria-hidden="true">
+    <svg width="52" height="40" viewBox="0 0 52 40" style="image-rendering:pixelated;">
+      <rect x="10" y="16" width="30" height="18" fill="#e0703a" rx="1"/>
+      <rect x="16" y="20" width="18" height="12" fill="#f0c080"/>
+      <path d="M40 24 Q56 14 48 34 Q42 36 40 30 Z" fill="#e0703a"/>
+      <ellipse cx="48" cy="33" rx="5" ry="4" fill="#f5f0e8"/>
+      <rect x="0" y="8" width="24" height="18" fill="#e0703a" rx="2"/>
+      <polygon points="2,8 8,0 14,8" fill="#e0703a"/>
+      <polygon points="14,8 20,0 26,8" fill="#e0703a"/>
+      <polygon points="4,8 8,2 12,8" fill="#d44a4a"/>
+      <polygon points="16,8 20,2 24,8" fill="#d44a4a"/>
+      <ellipse cx="10" cy="20" rx="3" ry="3" fill="#f5f0e8"/>
+      <circle cx="10" cy="18" r="2" fill="#1a0a00"/>
+      <circle cx="11" cy="17" r="0.7" fill="#fff"/>
+      <ellipse cx="4" cy="22" rx="3" ry="2" fill="#f5f0e8"/>
+      <circle cx="4" cy="22" r="1.5" fill="#c03030"/>
+      <rect x="14" y="32" width="7" height="8" fill="#c05a28" rx="1"/>
+      <rect x="24" y="32" width="7" height="8" fill="#c05a28" rx="1"/>
+    </svg>
+  </div>
+
+  <div class="character" aria-hidden="true">
+    <svg width="44" height="56" viewBox="0 0 44 56" style="image-rendering:pixelated;">
+      <rect x="8" y="22" width="28" height="22" fill="#4488cc" rx="1"/>
+      <rect x="8" y="26" width="28" height="4" fill="#2266aa"/>
+      <rect x="6" y="4" width="32" height="22" fill="#f0c090" rx="2"/>
+      <rect x="2" y="10" width="6" height="8" fill="#f0c090" rx="1"/>
+      <rect x="36" y="10" width="6" height="8" fill="#f0c090" rx="1"/>
+      <circle cx="14" cy="14" r="4" fill="#fff"/>
+      <circle cx="30" cy="14" r="4" fill="#fff"/>
+      <circle cx="14" cy="15" r="2.5" fill="#1a0a00"/>
+      <circle cx="30" cy="15" r="2.5" fill="#1a0a00"/>
+      <circle cx="15" cy="14" r="1" fill="#fff"/>
+      <circle cx="31" cy="14" r="1" fill="#fff"/>
+      <ellipse cx="22" cy="20" rx="3" ry="2" fill="#c08060"/>
+      <path d="M18 23 Q22 26 26 23" stroke="#8a5040" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+      <rect x="0"  y="24" width="10" height="8" fill="#4488cc" rx="1"/>
+      <rect x="34" y="24" width="10" height="8" fill="#4488cc" rx="1"/>
+      <ellipse cx="5"  cy="34" rx="5" ry="5" fill="#f0c090"/>
+      <ellipse cx="39" cy="34" rx="5" ry="5" fill="#f0c090"/>
+      <rect x="10" y="42" width="10" height="14" fill="#336699" rx="1"/>
+      <rect x="24" y="42" width="10" height="14" fill="#336699" rx="1"/>
+      <rect x="7"  y="52" width="14" height="4" fill="#1a1a1a" rx="1"/>
+      <rect x="23" y="52" width="14" height="4" fill="#1a1a1a" rx="1"/>
+    </svg>
+  </div>
+  <div class="eagle-sprite" aria-hidden="true">
+    <svg width="70" height="46" viewBox="0 0 70 46" style="image-rendering:pixelated;">
+      <rect x="20" y="18" width="30" height="16" fill="#7a5a18" rx="1"/>
+      <rect x="40" y="10" width="18" height="16" fill="#c8a020" rx="1"/>
+      <rect x="56" y="18" width="10" height="5" fill="#ffcc00"/>
+      <rect x="52" y="12" width="5" height="5" fill="#fff"/>
+      <rect x="53" y="13" width="3" height="3" fill="#111"/>
+      <rect x="4"  y="8"  width="28" height="14" fill="#5a4010" rx="1"/>
+      <rect x="0"  y="18" width="22" height="8"  fill="#5a4010" rx="1"/>
+      <rect x="44" y="8"  width="22" height="14" fill="#5a4010" rx="1"/>
+      <rect x="50" y="18" width="18" height="8"  fill="#5a4010" rx="1"/>
+      <rect x="26" y="34" width="6" height="4" fill="#ffcc00"/>
+      <rect x="34" y="34" width="6" height="4" fill="#ffcc00"/>
+    </svg>
+  </div>
+
+  <div class="door-sprite" aria-hidden="true">
+    <svg width="52" height="72" viewBox="0 0 52 72" style="image-rendering:pixelated;">
+      <rect x="0"  y="0"  width="52" height="72" fill="#4a2c10" rx="2"/>
+      <rect x="4"  y="4"  width="44" height="64" fill="#6b3c1e" rx="1"/>
+      <rect x="6"  y="6"  width="40" height="30" fill="#5a3018" rx="1"/>
+      <ellipse cx="26" cy="36" rx="20" ry="6" fill="#ffe066" opacity="0.3"/>
+      <rect x="8"  y="40" width="16" height="22" fill="#5a3018" rx="1"/>
+      <rect x="28" y="40" width="16" height="22" fill="#5a3018" rx="1"/>
+      <rect x="21" y="38" width="10" height="8" fill="#ffe066" rx="1"/>
+      <rect x="23" y="34" width="6" height="6" rx="3" fill="none" stroke="#ffe066" stroke-width="2"/>
+      <circle cx="26" cy="41" r="2" fill="#1a0a00"/>
+      <rect x="25" y="43" width="2" height="3" fill="#1a0a00"/>
+      <rect x="0" y="0" width="52" height="72" fill="rgba(255,220,50,0.05)" rx="2"/>
+    </svg>
+  </div>
+
+  <div class="gem-float" style="bottom:38%;left:36%;" aria-hidden="true">
+    <div style="display:grid;grid-template-columns:repeat(4,18px);gap:4px;margin-bottom:4px;">
+      <svg class="gem-svg" width="16" height="16" viewBox="0 0 16 16"><polygon points="8,0 16,6 12,16 4,16 0,6" fill="#e060ff"/><polygon points="8,1 14,6 11,14 5,14 2,6" fill="#f090ff" opacity=".5"/></svg>
+      <svg class="gem-svg" width="16" height="16" viewBox="0 0 16 16"><polygon points="8,0 16,6 12,16 4,16 0,6" fill="#c040dd"/><polygon points="8,1 14,6 11,14 5,14 2,6" fill="#e060ff" opacity=".5"/></svg>
+      <svg class="gem-svg" width="16" height="16" viewBox="0 0 16 16"><polygon points="8,0 16,6 12,16 4,16 0,6" fill="#e060ff"/><polygon points="8,1 14,6 11,14 5,14 2,6" fill="#f090ff" opacity=".5"/></svg>
+      <svg class="gem-svg" width="16" height="16" viewBox="0 0 16 16"><polygon points="8,0 16,6 12,16 4,16 0,6" fill="#ff80cc"/><polygon points="8,1 14,6 11,14 5,14 2,6" fill="#ffb0e0" opacity=".5"/></svg>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,18px);gap:4px;">
+      <svg class="gem-svg" width="16" height="16" viewBox="0 0 16 16"><polygon points="8,0 16,6 12,16 4,16 0,6" fill="#c040dd"/><polygon points="8,1 14,6 11,14 5,14 2,6" fill="#e060ff" opacity=".5"/></svg>
+      <svg class="gem-svg" width="16" height="16" viewBox="0 0 16 16"><polygon points="8,0 16,6 12,16 4,16 0,6" fill="#e060ff"/><polygon points="8,1 14,6 11,14 5,14 2,6" fill="#f090ff" opacity=".5"/></svg>
+      <svg class="gem-svg" width="16" height="16" viewBox="0 0 16 16"><polygon points="8,0 16,6 12,16 4,16 0,6" fill="#ff80cc"/><polygon points="8,1 14,6 11,14 5,14 2,6" fill="#ffb0e0" opacity=".5"/></svg>
+      <svg class="gem-svg" width="16" height="16" viewBox="0 0 16 16"><polygon points="8,0 16,6 12,16 4,16 0,6" fill="#c040dd"/><polygon points="8,1 14,6 11,14 5,14 2,6" fill="#e060ff" opacity=".5"/></svg>
+    </div>
+    <div class="platform-grass" style="width:90px;margin-top:6px;"></div>
+    <div class="platform-dirt"  style="width:90px;"></div>
+  </div>
+
+  <div class="ground-strip">
+    <div class="grass-top"></div>
+    <div class="dirt-body"></div>
+    <div class="dirt-dark"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-corner pc-tl"></div>
+    <div class="panel-corner pc-tr"></div>
+    <div class="panel-corner pc-bl"></div>
+    <div class="panel-corner pc-br"></div>
+    <div class="game-title-sub">★ A PLATFORMER ADVENTURE ★</div>
+    <div class="game-title-main">DONKEY<br>KONG <span>RUN</span></div>
+    <div class="gem-row-title">
+      <svg width="18" height="18" viewBox="0 0 18 18"><polygon points="9,0 18,7 14,18 4,18 0,7" fill="#e060ff"/><polygon points="9,1 16,7 12,16 6,16 2,7" fill="#f090ff" opacity=".5"/></svg>
+      <svg width="18" height="18" viewBox="0 0 18 18"><polygon points="9,0 18,7 14,18 4,18 0,7" fill="#ff80cc"/><polygon points="9,1 16,7 12,16 6,16 2,7" fill="#ffb0e0" opacity=".5"/></svg>
+      <svg width="18" height="18" viewBox="0 0 18 18"><polygon points="9,0 18,7 14,18 4,18 0,7" fill="#e060ff"/><polygon points="9,1 16,7 12,16 6,16 2,7" fill="#f090ff" opacity=".5"/></svg>
+    </div>
+    <p class="tagline">COLLECT ALL GEMS.<br>REACH THE DOOR.<br>ESCAPE THE JUNGLE.</p>
+    <div class="btn-row">
+      <button class="pk-btn" id="btnToInstructions">
+        <span class="btn-face">HOW TO PLAY</span>
+      </button>
+      <button class="pk-btn secondary" id="btnStartGame2">
+        <span class="btn-face">START GAME</span>
+      </button>
+    </div>
+    <div class="blink-hint">▼ PRESS START ▼</div>
+  </div>
+
+</div>
+<div id="screen-instructions" class="screen">
+  <div class="sky-bg"></div>
+  <div class="sun" style="top:30px;right:10%;"></div>
+  <div class="cloud-layer">
+    <div class="cloud cl1"></div>
+    <div class="cloud cl2"></div>
+  </div>
+  <div class="ground-strip">
+    <div class="grass-top"></div>
+    <div class="dirt-body"></div>
+    <div class="dirt-dark"></div>
+  </div>
+  <div class="panel">
+    <div class="panel-corner pc-tl"></div>
+    <div class="panel-corner pc-tr"></div>
+    <div class="panel-corner pc-bl"></div>
+    <div class="panel-corner pc-br"></div>
+
+    <div class="panel-title">HOW TO PLAY</div>
+    <div class="divider"></div>
+
+    <div class="controls-grid">
+      <div class="ctrl-row">
+        <span class="key-cap">A</span>
+        <span class="ctrl-desc">MOVE LEFT</span>
+      </div>
+      <div class="ctrl-row">
+        <span class="key-cap">D</span>
+        <span class="ctrl-desc">MOVE RIGHT</span>
+      </div>
+      <div class="ctrl-row">
+        <span class="key-cap">W</span>
+        <span class="ctrl-desc">JUMP</span>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <div style="width:100%;margin-bottom:14px;">
+      <div class="obj-row">
+        <svg width="14" height="14" viewBox="0 0 14 14" style="flex-shrink:0;">
+          <polygon points="7,0 14,5 11,14 3,14 0,5" fill="#e060ff"/>
+        </svg>
+        <span style="font-size:clamp(6px,1vw,7px);color:#d0e8ff;letter-spacing:1px;">COLLECT ALL GEMS IN THE LEVEL</span>
+      </div>
+      <div class="obj-row">
+        <svg width="14" height="14" viewBox="0 0 14 14" style="flex-shrink:0;">
+          <rect x="1" y="0" width="12" height="14" fill="#ffe066" rx="1"/>
+          <rect x="4" y="7" width="6" height="7" fill="#b85a00" rx="1"/>
+          <circle cx="7" cy="6" r="2" fill="#b85a00"/>
+        </svg>
+        <span style="font-size:clamp(6px,1vw,7px);color:#d0e8ff;letter-spacing:1px;">DOOR UNLOCKS WHEN ALL GEMS TAKEN</span>
+      </div>
+      <div class="obj-row">
+        <svg width="14" height="14" viewBox="0 0 14 14" style="flex-shrink:0;">
+          <polygon points="7,0 14,7 7,14 0,7" fill="#ff4466"/>
+        </svg>
+        <span style="font-size:clamp(6px,1vw,7px);color:#d0e8ff;letter-spacing:1px;">AVOID ENEMIES — FOXES &amp; EAGLES</span>
+      </div>
+      <div class="obj-row">
+        <svg width="14" height="14" viewBox="0 0 14 14" style="flex-shrink:0;">
+          <polygon points="7,0 14,5 11,14 3,14 0,5" fill="#ff4444"/>
+        </svg>
+        <span style="font-size:clamp(6px,1vw,7px);color:#d0e8ff;letter-spacing:1px;">YOU HAVE 3 LIVES — DON'T LOSE THEM</span>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="pk-btn secondary" id="btnBackToCover">
+        <span class="btn-face">◀ BACK</span>
+      </button>
+      <button class="pk-btn" id="btnStartGame">
+        <span class="btn-face">START GAME ▶</span>
+      </button>
     </div>
   </div>
+
+</div>
+
+<div id="sound-ui">
+  <div>
+    <button id="musicToggle">Music: ON</button>
+    <label style="margin-left:10px;">Vol <input id="musicVol" type="range" min="0" max="1" step="0.01"/></label>
+  </div>
+  <div style="margin-top:8px;">
+    <button id="sfxToggle">SFX: ON</button>
+    <label style="margin-left:26px;">Vol <input id="sfxVol" type="range" min="0" max="1" step="0.01"/></label>
+  </div>
+</div>
+
+<script>
+  document.getElementById('btnStartGame2')?.addEventListener('click', () => {
+    document.getElementById('btnStartGame')?.click();
+  });
+</script>
+
     <script src="./data/l_Sky_Ocean.js"></script>
     <script src="./data/l_Bramble.js"></script>
     <script src="./data/l_Back_Tiles.js"></script>
