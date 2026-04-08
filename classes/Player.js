@@ -1,5 +1,5 @@
 const X_VELOCITY = 200
-const JUMP_POWER = 283
+const JUMP_POWER = 250
 const GRAVITY = 580
 const HITBOX_OFFSET_X = 5
 const HITBOX_OFFSET_Y = 9

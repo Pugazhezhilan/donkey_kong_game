@@ -629,6 +629,12 @@ window.addEventListener('resize', async () => {
   backgroundCanvas = await renderStaticLayers()
 })
 
+window.addEventListener('keydown',(e) => {
+  if((e.key == 'r' || e.key == 'R') && levelDone){
+    window.location.reload();
+  }
+})
+
 window.startGameRendering = () => {
   if(window.__RENDERING_STARTED__)return;
   window.__RENDERING_STARTED__ = true;
