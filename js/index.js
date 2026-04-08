@@ -9,7 +9,7 @@ const GAME_HEIGHT = 576
 const TILE_SIZE = 16
 const TS = 16
 const px = (t) => {
-  t*TS;
+  return t*TS;
 }
 let tx = 20
 let ty = 30
@@ -204,7 +204,7 @@ const setPaused = (value) => {
     pauseOverlay.style.display = paused ? 'flex' : 'none';
   }
   if(paused){
-    bgm.paused();
+    bgm.pause();
   }
   else{
     applyAudio();
@@ -574,11 +574,6 @@ function animate(){
     }
   }
 
-  tryCollectGems(deltaTime)
-  checkEnemyHit()
-  checkAnimalHazards();
-  checkCheckpointTouch()
-  checkDoor()
   c.save()
   c.setTransform(dpr, 0, 0, dpr, 0, 0)
   c.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT)
