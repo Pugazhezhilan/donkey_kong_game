@@ -11,6 +11,7 @@ const TS = 16
 const px = (t) => {
   return t*TS;
 }
+
 let tx = 20
 let ty = 30
 
@@ -35,12 +36,14 @@ canvas.addEventListener('click', (e) => {
   console.log('tile:', Math.floor(worldX/16), Math.floor(worldY/16), 'world:', worldX, worldY);
 })
 
-let dpr = (window.devicePixelRatio || 1)
 const setCanvasSize = () => {
-  dpr = window.devicePixelRatio || 1
-  canvas.width = GAME_WIDTH * dpr
-  canvas.height = GAME_HEIGHT*dpr
+  canvas.width = GAME_WIDTH;
+  canvas.height = GAME_HEIGHT;
+  canvas.style.width = '100vw';
+  canvas.style.height = '100vh';
+  c.imageSmoothingEnabled = false;
 }
+
 setCanvasSize()
 const layersData = {
   l_Sky_Ocean:l_Sky_Ocean,
@@ -329,6 +332,7 @@ const renderStaticLayers = async () => {
   offscreenCanvas.width = WORLD_WIDTH
   offscreenCanvas.height = WORLD_HEIGHT
   const offscreenContext = offscreenCanvas.getContext('2d')
+  offscreenContext.imageSmoothingEnabled = false;
 
   for (const [layerName, tilesData] of Object.entries(layersData)){
     if (layerName === 'l_Gems'){
@@ -347,6 +351,8 @@ const renderStaticLayers = async () => {
       console.error(`Failed to load image for layer ${layerName}:`, error)
     }
   }
+
+  offscreenContext.imageSmoothingEnabled = false;
 
   return offscreenCanvas
 }
@@ -575,7 +581,7 @@ function animate(){
   }
 
   c.save()
-  c.setTransform(dpr, 0, 0, dpr, 0, 0)
+  c.setTransform(1, 0, 0, 1, 0, 0);
   c.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT)
   c.save()
   c.translate(-camera.x, -camera.y)
