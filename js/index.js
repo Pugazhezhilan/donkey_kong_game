@@ -45,6 +45,12 @@ const setCanvasSize = () => {
 }
 
 setCanvasSize()
+
+canvas.setAttribute('tabindex', '0');
+canvas.focus();
+canvas.addEventListener('click',() => canvas.focus());
+window.addEventListener('click',() => canvas.focus());
+
 const layersData = {
   l_Sky_Ocean:l_Sky_Ocean,
   l_Bramble:l_Bramble,
@@ -629,14 +635,15 @@ window.addEventListener('resize', async () => {
   backgroundCanvas = await renderStaticLayers()
 })
 
-window.addEventListener('keydown',(e) => {
-  if((e.key == 'r' || e.key == 'R') && levelDone){
-    window.location.reload();
-  }
-})
-
 window.startGameRendering = () => {
   if(window.__RENDERING_STARTED__)return;
   window.__RENDERING_STARTED__ = true;
   startRendering();
 };
+
+document.addEventListener('keydown',(e) => {
+  if(e.code == 'KeyR'){
+    e.preventDefault();
+    window.location.reload();
+  }
+}, true)
