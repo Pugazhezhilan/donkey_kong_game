@@ -91,6 +91,7 @@ const WORLD_HEIGHT = collisions.length * blockSize
 let score = 0
 let levelDone = false
 let gemsImage = null
+let magnetImage = null;
 let lastTime = 0
 const player = new Player({x: 100, y: 100, size:32, velocity:{x: 0, y: 0}})
 const enemies = []
@@ -426,8 +427,8 @@ function tryCollectGems(deltaTime){
     }
 
     if(player.magnetActive){
-      const gx = g.x+g.size/2;
-      const gy = g.y+g.size/2;
+      const gx = g.x + g.width/2;
+      const gy = g.y + g.height/2;
       const dx = playerCenterX - gx;
       const dy = playerCenterY - gy;
       const dist = Math.hypot(dx,dy);
@@ -677,6 +678,8 @@ const startRendering = async () =>{
       return
     }
     gemsImage = await loadImage('./images/decorations.png')
+    magnetImage = await loadImage('./images/magnet.png');
+
     lastTime = performance.now()
     requestAnimationFrame(animate)
   } catch (error) {

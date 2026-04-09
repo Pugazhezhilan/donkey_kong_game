@@ -30,14 +30,17 @@ class Magnet{
     }
 
     draw(ctx){
-        if(this.collected)return;
-        ctx.save();
-        ctx.fillStyle="#ff4df8";
-        ctx.fillRect(this.x, this.y, this.size, this.size);
-        ctx.fillStyle = "#111";
-        ctx.font = "12px monospace";
-        ctx.fillText("M", this.x+4, this.y+12);
-        ctx.restore();
+        if(this.collected){
+            return;
+        }
+        const img = window.__magnetImage;
+        if(img){
+            ctx.drawImage(img, this.x, this.y, this.size, this.size);
+        }
+        else{
+            ctx.fillStyle = "#ff4df8";
+            ctx.fillRect(this.x, this.y, this.size, this.size);
+        }
     }
 }
 window.Magnet = Magnet;
