@@ -81,5 +81,3 @@ document.getElementById('btnBackToCover')?.addEventListener('click',() => {
 
 document.getElementById('btnStartGame')?.addEventListener('click', startGame);
 showCover();
-document.getElementById('btnStartGame')?.addEventListener('click', startGame);
-sh

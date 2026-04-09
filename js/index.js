@@ -100,6 +100,10 @@ enemies.push(new Enemy({x: 700, y: 100}))
 let frog;
 let eagle;
 
+const magnets = [];
+magnets.push(new Magnet({x: 450, y:200, duration: 8, radius: 160}));
+magnets.push(new Magnet({x: 780, y:120, duration: 6, radius: 130}));
+
 const door = new Door({x: 900, y: 400})
 const checkpoints = []
 checkpoints.push(new CheckPoint({x: 200, y: 350}))
@@ -370,7 +374,7 @@ if (typeof cameraSetWorldSizeFromLayer === 'function'){
 function drawHud(ctx){
   ctx.save();
   ctx.fillStyle = 'rgba(0,0,0,0.5)';
-  ctx.fillRect(8,8,200,34)
+  ctx.fillRect(8,8,220,54)
   ctx.fillStyle = 'white'
   ctx.font = '16px monospace';
   ctx.fillText('SCORE: '+score, 16, 30)
@@ -383,6 +387,11 @@ function drawHud(ctx){
   ctx.fillStyle = 'red';
   ctx.font = '18px monospace'
   ctx.fillText(hearts, 130, 30);
+  if(player.magnetActive){
+    ctx.fillStyle = "#ff66ff";
+    ctx.font = '12px monospace';
+    ctx.fillText('MAGNET: '+ player.magnetTimeLeft.toFixed(1) + 's', 16, 50);
+  }
   ctx.restore();
 }
 
@@ -401,15 +410,37 @@ function drawLevelComplete(ctx){
 }
 
 function tryCollectGems(deltaTime){
-  if (levelDone) return
+  if (levelDone){
+    return;
+  }
 
   const pb = player.getHitBounds()
+  const playerCenterX = player.x + player.width/2;
+  const playerCenterY = player.y + player.height/2;
   for (let i = 0; i < gems.length; i++){
     const g = gems[i]
     g.update(deltaTime)
 
     if (g.collected){
       continue
+    }
+
+    if(player.magnetActive){
+      const gx = g.x+g.size/2;
+      const gy = g.y+g.size/2;
+      const dx = playerCenterX - gx;
+      const dy = playerCenterY - gy;
+      const dist = Math.hypot(dx,dy);
+
+      const radius = player.magnetRadius ?? 0;
+
+      if(dist < radius){
+        const pullSpeed = 260;
+        const nx = dx / (dist || 1);
+        const ny = dy / (dist || 1);
+        g.x += nx*pullSpeed*deltaTime;
+        g.y += ny*pullSpeed*deltaTime;
+      }
     }
 
     const gb = g.getBounds()
@@ -534,6 +565,18 @@ function checkCheckpointTouch(){
 
 let backgroundCanvas = null
 
+function checkMagnetPickup(){
+  const pb = player.getHitBounds();
+  for(let i=0;i<magnets.length;i++){
+    let m = magnets[i];
+    if(m.collected)continue;
+    if(rectsTouching(pb, m.getBounds())){
+      m.collect(player);
+      window.__sound?.play('powerup',{volume:0.8});
+    }
+  }
+}
+
 function animate(){
   const currentTime = performance.now()
   const deltaTime = Math.min((currentTime - lastTime) / 1000, 1 / 30)
@@ -541,7 +584,15 @@ function animate(){
 
   if(!levelDone && !paused){
     player.handleInput(keys);
+    checkMagnetPickup();
     player.update(deltaTime, collisionBlocks, platforms);
+    if(player.magnetActive){
+      player.magnetTimeLeft = (player.magnetTimeLeft ?? 0) - deltaTime;
+      if(player.magnetTimeLeft <= 0){
+        player.magnetActive = false;
+        player.magnetTimeLeft = 0;
+      }
+    }
     frog.update(deltaTime, collisionBlocks);
     eagle.update(deltaTime);
 
@@ -597,6 +648,9 @@ function animate(){
   }
 
   door.draw(c)
+  for(let m of magnets){
+    m.draw(c);
+  }
   for (let i = 0; i < gems.length; i++){
     gems[i].draw(c, gemsImage, 16)
   }

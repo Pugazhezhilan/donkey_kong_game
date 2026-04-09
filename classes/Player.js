@@ -37,6 +37,9 @@ class Player{
     this.maxHealth = 3
     this.invincible = false
     this.invincibleTime = 0
+    this.magnetActive = false;
+    this.magnetTimeLeft = 0;
+    this.magnetRadius = 0;
   }
 
   getBounds(){
@@ -113,6 +116,15 @@ class Player{
       }
     }
     this.wasOnGround = this.isOnGround
+
+    if(this.magnetActive){
+      this.magnetTimeLeft -= deltaTime;
+      if(this.magnetTimeLeft <= 0){
+        this.magnetActive = false;
+        this.magnetTimeLeft=0;
+        this.magnetRadius = 0;
+      }
+    }
   }
 
   chooseSprite(){
