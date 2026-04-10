@@ -91,7 +91,6 @@ const WORLD_HEIGHT = collisions.length * blockSize
 let score = 0
 let levelDone = false
 let gemsImage = null
-let magnetImage = null;
 let lastTime = 0
 const player = new Player({x: 100, y: 100, size:32, velocity:{x: 0, y: 0}})
 const enemies = []
@@ -120,7 +119,52 @@ const audioSettings = {
   musicVolume: Number(localStorage.getItem('music_volume') ?? '0.35'),
   sfxEnabled: localStorage.getItem('sfx_enabled') != '0',
   sfxVolume: Number(localStorage.getItem('sfx_volume') ?? '0.8'),
+};
+
+let gameOver = false;
+const gameOverOverlay = document.getElementById('gameover-overlay');
+const goScoreEl = document.getElementById('go-score');
+const goMaxScoreEl = document.getElementById('go-maxscore');
+const btnPlayAgain = document.getElementById('btnPlayAgain');
+const btnQuit = document.getElementById('btnQuit');
+
+const getMaxScore = () => Number(localStorage.getItem('max_score') ?? 0);
+const setMaxScore = (v) => localStorage.setItem('max_score', String(v));
+
+const showGameOver = () => {
+  gameOver = true;
+  paused = true;
+  bgm.pause();
+
+  const max = Math.max(getMaxScore(), score);
+  setMaxScore(max);
+  
+  if(goScoreEl){
+    goScoreEl.textContent = String(score);
+  }
+  if(goMaxScoreEl){
+    goMaxScoreEl.textContent = String(max);
+  }
+  
+  if(gameOverOverlay){
+    gameOverOverlay.style.display = 'flex';
+  }
 }
+
+const hideGameOver = () => {
+  gameOver = false;
+  if(gameOverOverlay){
+    gameOverOverlay.style.display = 'none';
+  }
+}
+
+btnPlayAgain?.addEventListener('click',()=>{
+  window.location.reload();
+})
+
+btnQuit?.addEventListener('click', () => {
+  window.location.href = 'index.html';
+})
 
 bgm.loop=true
 bgm.volume=audioSettings.musicVolume;
@@ -486,13 +530,8 @@ function checkEnemyHit(){
         player.invincibleTime = 1
 
         if(player.health <= 0){
-          score = 0;
-          player.health = player.maxHealth;
-          player.x = currentCheckpoint.x;
-          player.y = currentCheckpoint.y;
-          player.velocity.x = 0;
-          player.velocity.y = 0;
-          console.log('respawned at checkpoint');
+          showGameOver();
+          return;
         }
       }
     }
@@ -508,13 +547,8 @@ function hurtPlayer(){
   player.invincibleTime = 1
 
   if(player.health <= 0){
-    score = 0;
-    player.health = player.maxHealth;
-    player.x = currentCheckpoint.x;
-    player.y = currentCheckpoint.y;
-    player.velocity.x = 0;
-    player.velocity.y = 0;
-    console.log('respawned at checkpoint');
+    showGameOver();
+    return;
   }
 }
 
@@ -573,7 +607,7 @@ function checkMagnetPickup(){
     if(m.collected)continue;
     if(rectsTouching(pb, m.getBounds())){
       m.collect(player);
-      window.__sound?.play('powerup',{volume:0.8});
+      window.__sound?.play('checkpoint',{volume:0.6, rate:1.2});
     }
   }
 }
@@ -583,7 +617,7 @@ function animate(){
   const deltaTime = Math.min((currentTime - lastTime) / 1000, 1 / 30)
   lastTime = currentTime
 
-  if(!levelDone && !paused){
+  if(!levelDone && !paused && !gameOver){
     player.handleInput(keys);
     checkMagnetPickup();
     player.update(deltaTime, collisionBlocks, platforms);
@@ -678,7 +712,7 @@ const startRendering = async () =>{
       return
     }
     gemsImage = await loadImage('./images/decorations.png')
-    magnetImage = await loadImage('./images/magnet.png');
+    window.__magnetImage = await loadImage('./images/magnet.png');
 
     lastTime = performance.now()
     requestAnimationFrame(animate)
