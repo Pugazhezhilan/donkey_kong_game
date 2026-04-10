@@ -81,3 +81,25 @@ document.getElementById('btnBackToCover')?.addEventListener('click',() => {
 
 document.getElementById('btnStartGame')?.addEventListener('click', startGame);
 showCover();
+
+const autoStartFromSession = sessionStorage.getItem('autostart_game') === '1';
+const url = new URL(window.location.href);
+const autoStartFromQuery = url.searchParams.get('autostart') === '1';
+const shouldAutoStart = autoStartFromSession  || autoStartFromQuery;
+
+if(shouldAutoStart){
+  sessionStorage.removeItem('autostart_game');
+  if(autoStartFromQuery){
+    url.searchParams.delete('autostart');
+    window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+  }
+
+  const tryAutoStart = () => {
+    if(typeof window.startGameRendering === 'function'){
+      startGame();
+      return;
+    }
+    requestAnimationFrame(tryAutoStart);
+  }
+  requestAnimationFrame(tryAutoStart);
+}

@@ -45,7 +45,6 @@ const setCanvasSize = () => {
 }
 
 setCanvasSize()
-
 canvas.setAttribute('tabindex', '0');
 canvas.focus();
 canvas.addEventListener('click',() => canvas.focus());
@@ -87,32 +86,101 @@ const tilesets = {
 const blockSize = TILE_SIZE
 const WORLD_WIDTH = collisions[0].length *blockSize
 const WORLD_HEIGHT = collisions.length * blockSize
+const LOOP_RENDER_MARGIN = 80
 
 let score = 0
 let levelDone = false
+let laps = 0
 let gemsImage = null
 let lastTime = 0
 const player = new Player({x: 100, y: 100, size:32, velocity:{x: 0, y: 0}})
 const enemies = []
-enemies.push(new Enemy({x: 300, y: 200}))
-enemies.push(new Enemy({x: 500, y: 150}))
-enemies.push(new Enemy({x: 700, y: 100}))
+const ENEMY_SPAWNS = [
+  {x: 300, y: 200},
+  {x: 500, y: 150},
+  {x: 700, y: 100},
+]
+const previewEnemies = ENEMY_SPAWNS.map((spawn) => new Enemy(spawn))
+const spawnEnemies = () => {
+  for (let i = 0; i < ENEMY_SPAWNS.length; i++) {
+    const spawn = ENEMY_SPAWNS[i]
+    const enemy = enemies[i]
+    if (!enemy){
+      enemies.push(new Enemy(spawn))
+      continue
+    }
+    enemy.x = spawn.x
+    enemy.y = spawn.y
+    enemy.velocity.x = 40
+    enemy.velocity.y = 0
+    enemy.isOnGround = false
+    enemy.dead = false
+    enemy.currentFrame = 0
+    enemy.elapsedTime = 0
+  }
+  if (enemies.length > ENEMY_SPAWNS.length){
+    enemies.length = ENEMY_SPAWNS.length
+  }
+}
+spawnEnemies()
 let frog;
 let eagle;
-
 const magnets = [];
-magnets.push(new Magnet({x: 450, y:200, duration: 8, radius: 160}));
-magnets.push(new Magnet({x: 780, y:120, duration: 6, radius: 130}));
+const MAGNET_SPAWNS = [
+  {x: 450, y:200, duration: 8, radius: 160},
+  {x: 780, y:120, duration: 6, radius: 130},
+]
+const spawnMagnets = () => {
+  for (let i = 0; i < MAGNET_SPAWNS.length; i++) {
+    const spawn = MAGNET_SPAWNS[i]
+    const magnet = magnets[i]
+    if (!magnet){
+      magnets.push(new Magnet(spawn))
+      continue
+    }
+    magnet.x = spawn.x
+    magnet.y = spawn.y
+    magnet.size = spawn.size ?? magnet.size
+    magnet.duration = spawn.duration
+    magnet.radius = spawn.radius
+    magnet.collected = false
+  }
+  if (magnets.length > MAGNET_SPAWNS.length){
+    magnets.length = MAGNET_SPAWNS.length
+  }
+}
+spawnMagnets()
 
 const door = new Door({x: 900, y: 400})
+let doorUsedThisLap = false
 const checkpoints = []
-checkpoints.push(new CheckPoint({x: 200, y: 350}))
-checkpoints.push(new CheckPoint({x: 600, y: 250}))
-checkpoints.push(new CheckPoint({x: 850, y: 400}))
+const CHECKPOINT_SPAWNS = [{x: 200, y: 350},{x: 600, y: 250},{x: 850, y: 400}]
+const spawnCheckpoints = () => {
+  for (let i = 0; i < CHECKPOINT_SPAWNS.length; i++) {
+    const spawn = CHECKPOINT_SPAWNS[i]
+    const checkpoint = checkpoints[i]
+    if (!checkpoint){
+      checkpoints.push(new CheckPoint(spawn))
+      continue
+    }
+    checkpoint.x = spawn.x
+    checkpoint.y = spawn.y
+    checkpoint.activated = false
+  }
+  if (checkpoints.length > CHECKPOINT_SPAWNS.length){
+    checkpoints.length = CHECKPOINT_SPAWNS.length
+  }
+}
+spawnCheckpoints()
 
 let currentCheckpoint = { x: 100, y: 100 }
 
-const keys = {w:{pressed:false}, a:{pressed:false}, d: {pressed:false}, s:{pressed: false}}
+const keys = {
+  w:{pressed:false}, 
+  a:{pressed:false}, 
+  d: {pressed:false},
+  s:{pressed: false}
+}
 
 const audioSettings = {
   musicEnabled: localStorage.getItem('music_enabled') != '0',
@@ -159,7 +227,10 @@ const hideGameOver = () => {
 }
 
 btnPlayAgain?.addEventListener('click',()=>{
-  window.location.reload();
+  sessionStorage.setItem('autostart_game', '1')
+  const nextUrl = new URL(window.location.href)
+  nextUrl.searchParams.set('autostart', '1')
+  window.location.href = nextUrl.toString()
 })
 
 btnQuit?.addEventListener('click', () => {
@@ -324,6 +395,24 @@ collisions.forEach((row, y) => {
   })
 })
 
+const collisionBlocksLoop = collisionBlocks.map((block) => {
+  return new CollisionBlock({
+    x: block.x + WORLD_WIDTH,
+    y: block.y,
+    size: block.width,
+  })
+})
+const platformsLoop = platforms.map((platform) => {
+  return new Platform({
+    x: platform.x + WORLD_WIDTH,
+    y: platform.y,
+    width: platform.width,
+    height: platform.height,
+  })
+})
+const collisionBlocksWrapped = collisionBlocks.concat(collisionBlocksLoop)
+const platformsWrapped = platforms.concat(platformsLoop)
+
 const frogX = WORLD_WIDTH - 340;
 eagle = new Eagle({x: px(40), y:px(11), minY: px(9), maxY: px(13)});
 frog = new Frog({x: frogX, y: 120, width: 32, height: 32, minX: frogX-80, maxX: frogX+30, moveSpeed: 40, jumpInterval: 1.6, jumpPower: 220, idleFrames: 4, jumpFrames: 3, frameInterval: 0.1})
@@ -341,10 +430,22 @@ function placeOnGroundTopLeft(entity,blocks){
   return false
 }
 
-const gems = []
-const makeGemsFromLayer = (gemsLayer) => {
-  gems.length = 0
+function snapEnemiesToGround(enemyList){
+  for (let i = 0; i < enemyList.length; i++){
+    const enemy = enemyList[i]
+    placeOnGroundTopLeft(enemy, collisionBlocks)
+    enemy.velocity.y = 0
+    enemy.isOnGround = true
+  }
+}
 
+snapEnemiesToGround(enemies)
+snapEnemiesToGround(previewEnemies)
+
+const gems = []
+const gemSpawns = []
+const cacheGemSpawnsFromLayer = (gemsLayer) => {
+  gemSpawns.length = 0
   for (let y = 0; y < gemsLayer.length; y++) {
     for (let x = 0; x < gemsLayer[y].length; x++) {
       const symbol = gemsLayer[y][x]
@@ -352,20 +453,42 @@ const makeGemsFromLayer = (gemsLayer) => {
         let pts = 10
         if (symbol == 5) pts = 20
         if (symbol == 9) pts = 50
-        gems.push(
-          new Gem({
-            x: x * 16,
-            y: y * 16,
-            size: 16,
-            symbol: symbol,
-            points: pts,
-          }),
-        )
+        gemSpawns.push({
+          x: x * 16,
+          y: y * 16,
+          size: 16,
+          symbol: symbol,
+          points: pts,
+        })
       }
     }
   }
 }
-makeGemsFromLayer(l_Gems)
+
+const resetGems = () => {
+  for (let i = 0; i < gemSpawns.length; i++) {
+    const spawn = gemSpawns[i]
+    const gem = gems[i]
+    if (!gem){
+      gems.push(new Gem(spawn))
+      continue
+    }
+    gem.x = spawn.x
+    gem.y = spawn.y
+    gem.width = spawn.size
+    gem.height = spawn.size
+    gem.symbol = spawn.symbol
+    gem.points = spawn.points
+    gem.collected = false
+    gem.floatTime = Math.random() * Math.PI * 2
+  }
+  if (gems.length > gemSpawns.length){
+    gems.length = gemSpawns.length
+  }
+}
+
+cacheGemSpawnsFromLayer(l_Gems)
+resetGems()
 
 const renderLayer = (tilesData, tilesetImage, tileSize, context) => {
   const tilesPerRow = Math.ceil(tilesetImage.width / tileSize)
@@ -455,10 +578,6 @@ function drawLevelComplete(ctx){
 }
 
 function tryCollectGems(deltaTime){
-  if (levelDone){
-    return;
-  }
-
   const pb = player.getHitBounds()
   const playerCenterX = player.x + player.width/2;
   const playerCenterY = player.y + player.height/2;
@@ -469,7 +588,6 @@ function tryCollectGems(deltaTime){
     if (g.collected){
       continue
     }
-
     if(player.magnetActive){
       const gx = g.x + g.width/2;
       const gy = g.y + g.height/2;
@@ -478,7 +596,6 @@ function tryCollectGems(deltaTime){
       const dist = Math.hypot(dx,dy);
 
       const radius = player.magnetRadius ?? 0;
-
       if(dist < radius){
         const pullSpeed = 260;
         const nx = dx / (dist || 1);
@@ -499,18 +616,10 @@ function tryCollectGems(deltaTime){
     }
   }
 
-  let left = 0
-  for (let i = 0; i < gems.length; i++){
-    if (!gems[i].collected) left++
-  }
-  if (gems.length > 0 && left === 0) {
-    levelDone = true
-  }
 }
 
 function checkEnemyHit(){
   const pb = player.getHitBounds()
-
   for (let i = 0;i < enemies.length;i++){
     const e = enemies[i]
     if (e.dead) continue
@@ -559,7 +668,6 @@ function checkAnimalHazards(){
       hurtPlayer();
     }
   }
-
   if(frog && !frog.dead){
     if(rectsTouching(pb, frog.getBounds())){
       hurtPlayer();
@@ -574,18 +682,111 @@ function checkDoor(){
   if (rectsTouching(pb, db)){
     const anyLeft = gems.some((g) => !g.collected)
     if (anyLeft) return
-    window.__sound?.play('door',{volume:0.8});
-    levelDone = true
+    if(!doorUsedThisLap){
+      doorUsedThisLap = true
+      score += 100
+      window.__sound?.play('door',{volume:0.8});
+    }
   }
+}
+
+function resetLapState(){
+  resetGems()
+  spawnEnemies()
+  snapEnemiesToGround(enemies)
+  for (let i = 0; i < previewEnemies.length; i++) {
+    const spawn = ENEMY_SPAWNS[i]
+    const enemy = previewEnemies[i]
+    enemy.x = spawn.x
+    enemy.y = spawn.y
+    enemy.velocity.x = 40
+    enemy.velocity.y = 0
+    enemy.isOnGround = false
+    enemy.dead = false
+    enemy.currentFrame = 0
+    enemy.elapsedTime = 0
+  }
+  snapEnemiesToGround(previewEnemies)
+  spawnMagnets()
+  spawnCheckpoints()
+  doorUsedThisLap = false
+
+  const frogX = WORLD_WIDTH - 340
+  if (!eagle){
+    eagle = new Eagle({x: px(40), y:px(11), minY: px(9), maxY: px(13)})
+  }
+  else{
+    eagle.x = px(40)
+    eagle.y = px(11)
+    eagle.minY = px(9)
+    eagle.maxY = px(13)
+    eagle.flyDir = 1
+    eagle.dead = false
+    eagle.currentFrame = 0
+    eagle.elapsedTime = 0
+  }
+
+  if (!frog){
+    frog = new Frog({
+      x: frogX, 
+      y: 120, 
+      width: 32, 
+      height: 32, 
+      minX: frogX-80, 
+      maxX: frogX+30, 
+      moveSpeed: 40, 
+      jumpInterval: 1.6, 
+      jumpPower: 220, 
+      idleFrames: 4, 
+      jumpFrames: 3, 
+      frameInterval: 0.1
+    })
+  }
+  else{
+    frog.x = frogX
+    frog.y = 120
+    frog.minX = frogX - 80
+    frog.maxX = frogX + 30
+    frog.dir = 1
+    frog.dead = false
+    frog.isOnGround = false
+    frog.velocity.x = 0
+    frog.velocity.y = 0
+    frog.jumpTimer = 0
+    frog.currentFrame = 0
+    frog.elapsedTime = 0
+    frog.lastInAir = null
+  }
+  placeOnGroundTopLeft(frog, collisionBlocks)
+
+  currentCheckpoint.x = 100
+  currentCheckpoint.y = 100
+}
+
+function checkEndOfWorldLoop(){
+  if(typeof camera === 'undefined'){
+    return
+  }
+  if(camera.x < WORLD_WIDTH){
+    return
+  }
+
+  const hitboxOffsetX = player.hitbox.x - player.x
+  player.x -= WORLD_WIDTH
+  player.hitbox.x = player.x + hitboxOffsetX
+
+  if(typeof camera !== 'undefined'){
+    camera.x = Math.max(0, camera.x - WORLD_WIDTH)
+  }
+  laps += 1
+  resetLapState()
 }
 
 function checkCheckpointTouch(){
   const pb = player.getHitBounds()
-
   for (let i = 0; i < checkpoints.length; i++){
     const cp = checkpoints[i]
     const cb = cp.getBounds()
-
     if (rectsTouching(pb, cb)){
       if (!cp.activated) {
         console.log('checkpoint reached')
@@ -617,10 +818,13 @@ function animate(){
   const deltaTime = Math.min((currentTime - lastTime) / 1000, 1 / 30)
   lastTime = currentTime
 
-  if(!levelDone && !paused && !gameOver){
+  if(!paused && !gameOver){
     player.handleInput(keys);
     checkMagnetPickup();
-    player.update(deltaTime, collisionBlocks, platforms);
+    const nearLoopSeam = player.x >= WORLD_WIDTH - GAME_WIDTH
+    const activeCollisionBlocks = nearLoopSeam ? collisionBlocksWrapped : collisionBlocks
+    const activePlatforms = nearLoopSeam ? platformsWrapped : platforms
+    player.update(deltaTime, activeCollisionBlocks, activePlatforms);
     if(player.magnetActive){
       player.magnetTimeLeft = (player.magnetTimeLeft ?? 0) - deltaTime;
       if(player.magnetTimeLeft <= 0){
@@ -633,6 +837,9 @@ function animate(){
 
     for(let i=0;i<enemies.length;i++){
       enemies[i].update(deltaTime, collisionBlocks);
+    }
+    for(let i=0;i<previewEnemies.length;i++){
+      previewEnemies[i].update(deltaTime, collisionBlocks);
     }
 
     for(let i=enemies.length-1;i>=0;i--){
@@ -652,7 +859,8 @@ function animate(){
 
   if (typeof cameraUpdate === 'function'){
     cameraUpdate(deltaTime, player)
-  } else {
+  } 
+  else{
     if (player.x > SCROLL_POST_RIGHT){
       const scrollPostDistance = player.x - SCROLL_POST_RIGHT
       camera.x = Math.max(0, Math.min(scrollPostDistance, WORLD_WIDTH - GAME_WIDTH))
@@ -672,34 +880,73 @@ function animate(){
     }
   }
 
+  if(!paused && !gameOver){
+    checkEndOfWorldLoop()
+  }
+
   c.save()
   c.setTransform(1, 0, 0, 1, 0, 0);
   c.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT)
   c.save()
   c.translate(-camera.x, -camera.y)
 
-  if (backgroundCanvas){
-    c.drawImage(backgroundCanvas, 0, 0);
+  const drawWorldAtOffset = (offsetX, animated) => {
+    c.save()
+    c.translate(offsetX, 0)
+
+    if (backgroundCanvas){
+      c.drawImage(backgroundCanvas, 0, 0)
+    }
+
+    const useLoopPreview = offsetX === WORLD_WIDTH
+    door.draw(c)
+    if(useLoopPreview){
+      const img = window.__magnetImage
+      for(let i = 0; i < MAGNET_SPAWNS.length; i++){
+        const spawn = MAGNET_SPAWNS[i]
+        const size = spawn.size ?? 16
+        if(img){
+          c.drawImage(img, spawn.x, spawn.y, size, size)
+        }
+        else{
+          c.fillStyle = '#ff4df8'
+          c.fillRect(spawn.x, spawn.y, size, size)
+        }
+      }
+    }
+    else{
+      for(let m of magnets){
+        m.draw(c)
+      }
+    }
+    for (let i = 0; i < gems.length; i++){
+      gems[i].draw(c, gemsImage, 16)
+    }
+    if(useLoopPreview){
+      for (let i = 0; i < previewEnemies.length; i++){
+        previewEnemies[i].draw(c, deltaTime)
+      }
+    }
+    else{
+      for (let i = 0; i < enemies.length; i++){
+        enemies[i].draw(c, animated ? deltaTime : 0)
+      }
+    }
+    eagle.draw(c, animated ? deltaTime : 0)
+    frog.draw(c, animated ? deltaTime : 0)
+
+    c.restore()
   }
 
-  door.draw(c)
-  for(let m of magnets){
-    m.draw(c);
+  drawWorldAtOffset(0, true)
+  const shouldDrawRightCopy = camera.x + GAME_WIDTH >= WORLD_WIDTH - LOOP_RENDER_MARGIN
+  if(shouldDrawRightCopy){
+    drawWorldAtOffset(WORLD_WIDTH, false)
   }
-  for (let i = 0; i < gems.length; i++){
-    gems[i].draw(c, gemsImage, 16)
-  }
-  for (let i = 0; i < enemies.length; i++){
-    enemies[i].draw(c, deltaTime)
-  }
-  
-  eagle.draw(c, deltaTime)
-  frog.draw(c, deltaTime);
+
   player.draw(c, deltaTime)
   c.restore()
-
   drawHud(c)
-  if (levelDone) drawLevelComplete(c)
   c.restore()
   requestAnimationFrame(animate)
 }
@@ -713,7 +960,6 @@ const startRendering = async () =>{
     }
     gemsImage = await loadImage('./images/decorations.png')
     window.__magnetImage = await loadImage('./images/magnet.png');
-
     lastTime = performance.now()
     requestAnimationFrame(animate)
   } catch (error) {
@@ -731,7 +977,6 @@ window.startGameRendering = () => {
   window.__RENDERING_STARTED__ = true;
   startRendering();
 };
-
 document.addEventListener('keydown',(e) => {
   if(e.code == 'KeyR'){
     e.preventDefault();

@@ -47,16 +47,14 @@ const cameraUpdate = (dt,player) =>{
   camera.x = camera.x + (targetX-camera.x)*sx;
   camera.y = camera.y + (targetY - camera.y)*sy;
 
-  let maxX = camera.worldW-camera.viewW;
   let maxY = camera.worldH - camera.viewH;
-  if(maxX < 0){
-    maxX = 0;
+  if(camera.x < 0){
+    camera.x = 0;
   }
   if(maxY < 0){
     maxY = 0;
   }
 
-  camera.x = clamp(camera.x, 0, maxX);
   camera.y = clamp(camera.y, 0, maxY);
 
   camera.x = Math.floor(camera.x);
