@@ -151,6 +151,33 @@ const spawnMagnets = () => {
 }
 spawnMagnets()
 
+const sneakers = [];
+const SNEAKERS_SPAWNS = [
+  {x: 360, y:200, duration: 10, jumpMultiplier: 1.6},
+  {x: 760, y:120, duration: 8, jumpMultiplier: 1.15},
+];
+
+const spawnSneakers = () => {
+  for(let i=0;i<SNEAKERS_SPAWNS.length;i++){
+    const spawn = SNEAKERS_SPAWNS[i];
+    const s = sneakers[i];
+    if(!s){
+      sneakers.push(new SuperSneakers(spam));
+      continue;
+    }
+    s.x = spawn.x;
+    s.y = spawn.y;
+    s._baseY = spawn.y;
+    s.size = spawn.size ?? s.size;
+    s.duration = spawn.duration ?? s.duration;
+    s.jumpMultilier = spawn.jumpMultiplier ?? s.jumpMultiplier;
+    s.collect = false;
+    s._t = 0;
+  }
+  if(sneakers.length > SNEAKERS_SPAWNS.length) sneakers.length = SNEAKERS_SPAWNS.length;
+}
+spawnSneakers();
+
 const door = new Door({x: 900, y: 400})
 let doorUsedThisLap = false
 const checkpoints = []
@@ -709,6 +736,7 @@ function resetLapState(){
   snapEnemiesToGround(previewEnemies)
   spawnMagnets()
   spawnCheckpoints()
+  spawnSneakers();
   doorUsedThisLap = false
 
   const frogX = WORLD_WIDTH - 340
@@ -813,6 +841,18 @@ function checkMagnetPickup(){
   }
 }
 
+function checkSneakersPickup(){
+  const pb = player.getHitBounds();
+  for(let i=0;i<sneakers.length;i++){
+    const s = sneakers[i];
+    if(s.collected) continue;
+    if(rectsTouching(pb, s.getBounds())){
+      s.collect(player);
+      window.__sound?.play('checkpoint',{volume:0.6, rate: 1.35});
+    }
+  }
+}
+
 function animate(){
   const currentTime = performance.now()
   const deltaTime = Math.min((currentTime - lastTime) / 1000, 1 / 30)
@@ -821,6 +861,7 @@ function animate(){
   if(!paused && !gameOver){
     player.handleInput(keys);
     checkMagnetPickup();
+    checkSneakersPickup();
     const nearLoopSeam = player.x >= WORLD_WIDTH - GAME_WIDTH
     const activeCollisionBlocks = nearLoopSeam ? collisionBlocksWrapped : collisionBlocks
     const activePlatforms = nearLoopSeam ? platformsWrapped : platforms
@@ -917,6 +958,20 @@ function animate(){
     else{
       for(let m of magnets){
         m.draw(c)
+      }
+    }
+    if(useLoopPreview){
+      const img = window.__sneakersImage;
+      for(let i=0;i<SNEAKERS_SPAWNS.length;i++){
+        const spawn = SNEAKERS_SPAWNS[i];
+        const size = spawn.size ?? 16;
+        if(img){
+          c.drawImage(img, spawn.x, spawn.y, size, size);
+        }
+        else{
+          c.fillStyle = '#00e5ff';
+          c.fillRect(spawn.x, spawn.y, size, size);
+        }
       }
     }
     for (let i = 0; i < gems.length; i++){

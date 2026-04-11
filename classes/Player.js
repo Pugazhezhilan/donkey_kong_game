@@ -40,6 +40,10 @@ class Player{
     this.magnetActive = false;
     this.magnetTimeLeft = 0;
     this.magnetRadius = 0;
+    this.superSneakersActive = false;
+    this.superSneakersTimeLeft = 0;
+    this.superSneakersJumpMultiplier = 1.0;
+    this.jumpPower = this.jumpPower ?? 320;
   }
 
   getBounds(){
@@ -79,6 +83,14 @@ class Player{
   }
 
   update(deltaTime, collisionBlocks, platforms){
+    if(this.superSneakersActive){
+      this.superSneakersTimeLeft -= deltaTime;
+      if(this.superSneakersTimeLeft <= 0){
+        this.superSneakersActive = false;
+        this.superSneakersTimeLeft = 0;
+        this.superSneakersJumpMultiplier = 1.0;
+      }
+    }
     if(!deltaTime || !this.loaded) return
     this.previousHitboxY = this.hitbox.y;
     if(this.invincible){
@@ -151,7 +163,9 @@ class Player{
 
   jump(){
     if (this.coyoteTime <= 0) return
-    this.velocity.y = -JUMP_POWER
+    const mult = this.superSneakersActive ? (this.superSneakersJumpMultiplier || 1.0) : 1.0
+    this.velocity.y = -(this.jumpPower*mult);
+
     this.isOnGround = false
     this.coyoteTime = 0
     window.__sound?.play('jump', {volume: 0.9 })
