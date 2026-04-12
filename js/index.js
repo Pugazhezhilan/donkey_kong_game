@@ -571,8 +571,86 @@ if (typeof cameraSetWorldSizeFromLayer === 'function'){
   cameraSetWorldSizeFromLayer(l_Back_Tiles)
 }
 
+function drawOutlinedText(ctx, text, x, y, fillColor, strokeColor, lineWidth){
+  ctx.save();
+  ctx.lineJoin = 'round';
+  ctx.miterLimit = 2
+  ctx.lineWidth = lineWidth;
+  ctx.strokeStyle = strokeColor
+  ctx.strokeText(text, x, y);
+  ctx.fillStyle = fillColor;
+  ctx.fillText(text,x,y);
+  ctx.restore();
+}
+
 function drawHud(ctx){
-  con
+  const x = 12
+  const y = 12
+  const padX = 8
+  const padY = 8
+  const rowH = 14
+  const gap = 2
+  const panelW = 200
+  const labelX = x + padX
+  const valueRightX = x + panelW - padX
+
+  const full = player.health;
+  const max = player.maxHealth
+  let hearts = ''
+  for (let i = 0; i < max; i++){
+    hearts += i < full ? '♥' : '♡';
+  }
+
+  const magText = player.magnetActive ? player.magnetTimeLeft.toFixed(1) + 's' : 'OFF'
+  const snkText = player.superSneakersActive ? player.superSneakersTimeLeft.toFixed(1) + 's' : 'OFF'
+  const panelH = padY * 2 + rowH * 4 + gap * 3
+
+  ctx.save()
+  ctx.globalAlpha = 1
+  ctx.textBaseline = 'middle'
+  ctx.fillStyle = 'rgba(0,0,0,0.70)'
+  ctx.fillRect(x, y, panelW, panelH)
+  ctx.strokeStyle = 'rgba(255,220,100,0.40)'
+  ctx.lineWidth = 2
+  ctx.strokeRect(x + 1, y + 1, panelW - 2, panelH - 2)
+
+  let cy = y+padY+rowH/2;
+  ctx.font = '9px "Press Start 2P", monospace'
+  ctx.fillStyle = 'white';
+  ctx.textAlign = 'left';
+  ctx.fillText('SCORE', labelX, cy);
+
+  ctx.fillStyle = '#ffe066';
+  ctx.textAlign = 'right';
+  ctx.fillText(String(score), valueRightX, cy);
+
+  cy += rowH+gap;
+
+  ctx.fillStyle = 'white';
+  ctx.textAlign = 'left';
+  ctx.fillText('LIFE', labelX, cy);
+
+  ctx.font = '16px monospace';
+  ctx.textAlign = 'right';
+  drawOutlinedText(ctx, hearts, valueRightX, cy, '#ff4444', 'rgba(0,0,0,0.85)',4)
+
+  cy += rowH + gap
+  ctx.font = '8px "Press Start 2P", monospace'
+  ctx.fillStyle = '#ff66ff'
+  ctx.textAlign = 'left'
+  ctx.fillText('MAGNET', labelX, cy)
+  ctx.fillStyle = '#ffe066'
+  ctx.textAlign = 'right'
+  ctx.fillText(magText, valueRightX, cy)
+
+  cy += rowH + gap
+  ctx.fillStyle = '#00e5ff'
+  ctx.textAlign = 'left'
+  ctx.fillText('SNEAKERS', labelX, cy)
+  ctx.fillStyle = '#ffe066'
+  ctx.textAlign = 'right'
+  ctx.fillText(snkText, valueRightX, cy)
+  ctx.restore()
 }
 
 function drawLevelComplete(ctx){
@@ -580,7 +658,7 @@ function drawLevelComplete(ctx){
   ctx.fillStyle = 'rgba(0,0,0,0.65)'
   ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT)
 
-  ctx.fillStyle = 'yellow'
+  ctx.fillStyle = 'yellow';
   ctx.font = '48px monospace'
   ctx.fillText('LEVEL COMPLETED!!!', 240, 250)
   ctx.font = '20px monospace'
