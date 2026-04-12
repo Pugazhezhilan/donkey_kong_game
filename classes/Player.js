@@ -1,5 +1,5 @@
 const X_VELOCITY = 200
-const JUMP_POWER = 284
+const JUMP_POWER = 250
 const GRAVITY = 580
 const HITBOX_OFFSET_X = 5
 const HITBOX_OFFSET_Y = 9
@@ -43,7 +43,6 @@ class Player{
     this.superSneakersActive = false;
     this.superSneakersTimeLeft = 0;
     this.superSneakersJumpMultiplier = 1.0;
-    this.jumpPower = this.jumpPower ?? 320;
   }
 
   getBounds(){
@@ -162,13 +161,14 @@ class Player{
   }
 
   jump(){
-    if (this.coyoteTime <= 0) return
-    const mult = this.superSneakersActive ? (this.superSneakersJumpMultiplier || 1.0) : 1.0
-    this.velocity.y = -(this.jumpPower*mult);
-
-    this.isOnGround = false
-    this.coyoteTime = 0
-    window.__sound?.play('jump', {volume: 0.9 })
+    if(this.coyoteTime <= 0){
+      return;
+    }
+    const mult = this.superSneakersActive ? (this.superSneakersJumpMultiplier ?? 1.0) : 1.0;
+    this.velocity.y = -(JUMP_POWER * mult);
+    this.isOnGround = false;
+    this.coyoteTime=0;
+    window.__sound?.play('jump',{volume:0.9});
   }
 
   updateHorizontalPosition(deltaTime){

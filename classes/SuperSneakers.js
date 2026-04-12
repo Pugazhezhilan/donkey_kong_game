@@ -6,7 +6,7 @@ class SuperSneakers{
         this.duration = duration
         this.jumpMultiplier = jumpMultiplier;
         this.collected = false;
-        this.__t = 0;
+        this._t = 0;
         this._baseY = y;
     }
 
@@ -52,6 +52,3 @@ class SuperSneakers{
     }
 }
 window.SuperSneakers = SuperSneakers;
-HTMLObjectElementjkh
-jjghh
-mk

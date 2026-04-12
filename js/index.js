@@ -153,28 +153,33 @@ spawnMagnets()
 
 const sneakers = [];
 const SNEAKERS_SPAWNS = [
-  {x: 360, y:200, duration: 10, jumpMultiplier: 1.6},
-  {x: 760, y:120, duration: 8, jumpMultiplier: 1.15},
+  {x: 185, y: 145, size: 32, duration: 10, jumpMultiplier: 1.6},
+  {x: 1065, y: 175, size: 32, duration: 8, jumpMultiplier: 1.15},
 ];
 
 const spawnSneakers = () => {
   for(let i=0;i<SNEAKERS_SPAWNS.length;i++){
     const spawn = SNEAKERS_SPAWNS[i];
     const s = sneakers[i];
+
     if(!s){
-      sneakers.push(new SuperSneakers(spam));
+      sneakers.push(new SuperSneakers(spawn));
       continue;
     }
+
     s.x = spawn.x;
     s.y = spawn.y;
     s._baseY = spawn.y;
     s.size = spawn.size ?? s.size;
     s.duration = spawn.duration ?? s.duration;
-    s.jumpMultilier = spawn.jumpMultiplier ?? s.jumpMultiplier;
-    s.collect = false;
+    s.jumpMultiplier = spawn.jumpMultiplier ?? s.jumpMultiplier;
+    s.collected = false;
     s._t = 0;
   }
-  if(sneakers.length > SNEAKERS_SPAWNS.length) sneakers.length = SNEAKERS_SPAWNS.length;
+
+  if(sneakers.length > SNEAKERS_SPAWNS.length){
+    sneakers.length = SNEAKERS_SPAWNS.length;
+  }
 }
 spawnSneakers();
 
@@ -567,27 +572,7 @@ if (typeof cameraSetWorldSizeFromLayer === 'function'){
 }
 
 function drawHud(ctx){
-  ctx.save();
-  ctx.fillStyle = 'rgba(0,0,0,0.5)';
-  ctx.fillRect(8,8,220,54)
-  ctx.fillStyle = 'white'
-  ctx.font = '16px monospace';
-  ctx.fillText('SCORE: '+score, 16, 30)
-  const full = player.health;
-  const max = player.maxHealth
-  let hearts = ''
-  for(let i=0;i<max;i++){
-    hearts += i < full ? '♥' : '♡'
-  }
-  ctx.fillStyle = 'red';
-  ctx.font = '18px monospace'
-  ctx.fillText(hearts, 130, 30);
-  if(player.magnetActive){
-    ctx.fillStyle = "#ff66ff";
-    ctx.font = '12px monospace';
-    ctx.fillText('MAGNET: '+ player.magnetTimeLeft.toFixed(1) + 's', 16, 50);
-  }
-  ctx.restore();
+  con
 }
 
 function drawLevelComplete(ctx){
@@ -866,13 +851,6 @@ function animate(){
     const activeCollisionBlocks = nearLoopSeam ? collisionBlocksWrapped : collisionBlocks
     const activePlatforms = nearLoopSeam ? platformsWrapped : platforms
     player.update(deltaTime, activeCollisionBlocks, activePlatforms);
-    if(player.magnetActive){
-      player.magnetTimeLeft = (player.magnetTimeLeft ?? 0) - deltaTime;
-      if(player.magnetTimeLeft <= 0){
-        player.magnetActive = false;
-        player.magnetTimeLeft = 0;
-      }
-    }
     frog.update(deltaTime, collisionBlocks);
     eagle.update(deltaTime);
 
@@ -974,6 +952,12 @@ function animate(){
         }
       }
     }
+    else{
+      for(const s of sneakers){
+        s.update(animated ? deltaTime : 0);
+        s.draw(c);
+      }
+    }
     for (let i = 0; i < gems.length; i++){
       gems[i].draw(c, gemsImage, 16)
     }
@@ -1015,6 +999,7 @@ const startRendering = async () =>{
     }
     gemsImage = await loadImage('./images/decorations.png')
     window.__magnetImage = await loadImage('./images/magnet.png');
+    window.__sneakersImage = await loadImage('./images/sneakers.png');
     lastTime = performance.now()
     requestAnimationFrame(animate)
   } catch (error) {
