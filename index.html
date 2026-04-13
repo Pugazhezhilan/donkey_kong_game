@@ -31,8 +31,6 @@
       image-rendering: crisp-edges;
       position: fixed;
       inset: 0;
-      width: 100vw;
-      height: 100vh;
       display: block;
     }
     .screen{
@@ -741,6 +739,22 @@
       margin: 6px 0;
       line-height: 1.6;
     }
+    #mobile-controls{
+      position: fixed;
+      bottom: 20px;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      z-index: 9999;
+    }
+    #mobile-controls button{
+      font-size: 20px;
+      padding: 15px;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      border: 2px solid white;
+    }
   </style>
 </head>
 <body>
@@ -1034,6 +1048,12 @@
       <button id="btnQuit">Quit</button>
     </div>
   </div>
+</div>
+
+<div id="mobile-controls">
+  <button id="left"></button>
+  <button id="jump"></button>
+  <button id="right"></button>
 </div>
 
 <script>

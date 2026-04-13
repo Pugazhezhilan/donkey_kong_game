@@ -22,6 +22,17 @@ else{
   window.__GAME_ALREADY_STARTED__ = true;
 }
 
+function resizeCanvas(){
+  const scale = Math.min(window.innerWidth / GAME_WIDTH, window.innerHeight / GAME_HEIGHT);
+  canvas.width = GAME_WIDTH;
+  canvas.height = GAME_HEIGHT;
+  canvas.style.width = GAME_WIDTH*scale + "px";
+  canvas.style.height = GAME_HEIGHT*scale + "px";
+}
+
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
 canvas.addEventListener('click', (e) => {
   if(typeof camera === 'undefined'){
     return
@@ -88,6 +99,15 @@ const WORLD_WIDTH = collisions[0].length *blockSize
 const WORLD_HEIGHT = collisions.length * blockSize
 const LOOP_RENDER_MARGIN = 80
 
+let hudToastText = '';
+let hudToastTimeLeft = 0;
+let hudToastCooldown = 0;
+
+function showHudToast(text, seconds=1.2){
+  hudToastText = text;
+  hudToastTimeLeft = seconds;
+}
+
 let score = 0
 let levelDone = false
 let laps = 0
@@ -150,6 +170,11 @@ const spawnMagnets = () => {
   }
 }
 spawnMagnets()
+
+const HEAL_DISTANCE_PER_HEART = px(120);
+let lastDamageWorldX = null;
+let distanceSinceDamage = 0;
+let lastHealTrackWorldX = null;
 
 const sneakers = [];
 const SNEAKERS_SPAWNS = [
@@ -386,6 +411,48 @@ window.addEventListener('keydown',(e)=>{
   }
 })
 
+function startDistanceHealTracking(){
+  lastDamageWorldX = player.x + (laps * WORLD_WIDTH);
+  lastHealTrackWorldX = lastDamageWorldX;
+  distanceSinceDamage = 0;
+}
+
+function updateDistanceHeal(){
+  if(paused || gameOver){
+    return;
+  }
+  if(player.health >= player.maxHealth){
+    return;
+  }
+  if(lastDamageWorldX == null){
+    return;
+  }
+  if(player.invincible){
+    return;
+  }
+
+  const worldX = player.x + (laps*WORLD_WIDTH);
+  const dx = Math.abs(worldX-lastHealTrackWorldX);
+  distanceSinceDamage += dx;
+  lastHealTrackWorldX = worldX;
+
+  if(distanceSinceDamage >= HEAL_DISTANCE_PER_HEART){
+    player.health = Math.min(player.maxHealth, player.health+1);
+    if(hudToastCooldown <= 0){
+      showHudToast('HEART RESTORED!', 1.2);
+      hudToastCooldown = 1.2;
+    }
+    window.__sound?.play('checkpoint',{volume: 0.55, rate: 1.6});
+    distanceSinceDamage -= HEAL_DISTANCE_PER_HEART;
+
+    if(player.health >= player.maxHealth){
+      lastDamageWorldX = null;
+      lastHealTrackWorldX = null;
+      distanceSinceDamage = 0;
+    }
+  }
+}
+
 const unlockOnce = async() => {
   await sound.unlock();
   await applyAudio();
@@ -599,7 +666,7 @@ function drawHud(ctx){
   let hearts = ''
   for (let i = 0; i < max; i++){
     hearts += i < full ? '♥' : '♡';
-  }
+  } 
 
   const magText = player.magnetActive ? player.magnetTimeLeft.toFixed(1) + 's' : 'OFF'
   const snkText = player.superSneakersActive ? player.superSneakersTimeLeft.toFixed(1) + 's' : 'OFF'
@@ -650,6 +717,23 @@ function drawHud(ctx){
   ctx.fillStyle = '#ffe066'
   ctx.textAlign = 'right'
   ctx.fillText(snkText, valueRightX, cy)
+
+  if(hudToastTimeLeft > 0 && hudToastText){
+    const alpha = Math.min(1,hudToastTimeLeft/0.25);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.font = '12px "Press Start 2P", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    const msgX = GAME_WIDTH/2;
+    const msgY = 40;
+    ctx.fillStyle = 'rgba(0,0,0,0.75)';
+    ctx.fillRect(msgX-170, msgY-14, 340, 28);
+    drawOutlinedText(ctx, hudToastText, msgX, msgY, '#7CFF7C', 'rgba(0,0,0,0.9)',4);
+    ctx.restore();
+  }
+
   ctx.restore()
 }
 
@@ -723,6 +807,7 @@ function checkEnemyHit(){
       } else {
         if (player.invincible) return
         player.health -= 1
+        startDistanceHealTracking();
         window.__sound?.play('hurt',{volume:0.9});
         player.velocity.y = -120
         player.invincible = true
@@ -740,6 +825,7 @@ function checkEnemyHit(){
 function hurtPlayer(){
   if(player.invincible)return;
   player.health -= 1;
+  startDistanceHealTracking();
   window.__sound?.play('hurt',{volume: 0.9})
   player.velocity.y = -120
   player.invincible = true
@@ -920,6 +1006,13 @@ function animate(){
   const currentTime = performance.now()
   const deltaTime = Math.min((currentTime - lastTime) / 1000, 1 / 30)
   lastTime = currentTime
+  hudToastCooldown = Math.max(0, hudToastCooldown-deltaTime);
+  if(hudToastTimeLeft > 0){
+    hudToastTimeLeft = Math.max(0, hudToastTimeLeft - deltaTime);
+    if(hudToastTimeLeft === 0){
+      hudToastText = '';
+    }
+  }
 
   if(!paused && !gameOver){
     player.handleInput(keys);
@@ -948,6 +1041,7 @@ function animate(){
     checkAnimalHazards();
     checkCheckpointTouch();
     checkDoor();
+    updateDistanceHeal();
   }
   else{
     player.velocity.x = 0;

@@ -49,3 +49,15 @@ document.addEventListener('visibilitychange', () => {
     lastTime = performance.now()
   }
 })
+
+document.getElementById("left").ontouchstart = () =>  keys.a.pressed = true;
+document.getElementById("left").ontouchend = () => keys.a.pressed = false;
+document.getElementById("right").ontouchstart = () => keys.d.pressed = true;
+document.getElementById("right").ontouched = () => keys.d.presses = false;
+document.getElementById("jump").ontouchstart = () => {
+  player.velocity.y = -15;
+}
+
+if(window.innerWidth > 768){
+  document.getElementById("mobile-controls").style.display = "none";
+}
