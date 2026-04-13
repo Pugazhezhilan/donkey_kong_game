@@ -109,29 +109,27 @@ function showHudToast(text, seconds=1.2){
 }
 
 function applyDifficultyIncrease(){
-  for(let i=0;i<enemies.length;i++){
-    enemies[i].velocity.x = 40+level*30; 
-  }
   const maxEnemies = Math.min(3+level,10);
-  while(enemies.length < maxEnemies){
-    const spawn = ENEMY_SPAWNS[Math.floor(Math.random()*ENEMY_SPAWNS.length)]
 
-    enemies.push(new Enemy({
-      x:spawn.x  +Math.random()*200,
-      y: spawn.y
-    }))
+  spawnEnemies(maxEnemies);
+  snapEnemiesToGround(enemies);
+
+  const enemySpeed = 40+level*25;
+  for(let i=0;i<enemies.length;i++){
+    enemies[i].velocity.x = enemySpeed;
   }
 
   if(frog){
-    frog.moveSpeed = 40+level*10;
-    frog.jumpInterval = Math.max(1.6-level*0.1, 0.6);
+    frog.moveSpeed = 40+level*12;
+    frog.jumpInterval = Math.max(1.6-level*0.12,0.45);
+    frog.jumpPower = 220+level*10;
   }
 
   if(eagle){
-    eagle.speed = 40+level*12;
+    eagle.speed = 40+level*14;
   }
 
-  showHudToast("LEVEL "+ level + "↑ DIFFICULTY", 1.5)
+  showHudToast("LEVEL "+ level + " ↑ DIFFICULTY", 1.5)
 }
 
 let score = 0
@@ -149,31 +147,32 @@ const ENEMY_SPAWNS = [
   {x: 700, y: 100},
 ]
 const previewEnemies = ENEMY_SPAWNS.map((spawn) => new Enemy(spawn))
-const spawnEnemies = () => {
-  while(enemies.length < targetCount){
+const spawnEnemies = (targetCount = ENEMY_SPAWNS.length) => {
+  while (enemies.length < targetCount) {
     const spawn = ENEMY_SPAWNS[Math.floor(Math.random() * ENEMY_SPAWNS.length)];
     enemies.push(new Enemy({
-      x: spawn.x + Math.random()*220,
+      x: spawn.x + Math.random() * 220,
       y: spawn.y
     }));
-    if(enemies.length > targetCount){
-      enemies.length = targetCount;
-    }
-
-    for(let i=0;i<enemies.length;i++){
-      const spawn = ENEMY_SPAWNS[i%ENEMY_SPAWNS.length];
-      const enemy = enemies[i];
-      enemy.x = spawn.x + (i >= ENEMY_SPAWNS.length ? Math.random()*220 : 0);
-      enemy.y = spawn.y;
-      enemy.velocity.x = 40;
-      enemy.velocity.y = 0;
-      enemy.isOnGround = false;
-      enemy.dead = false;
-      enemy.currentFrame = 0;
-      enemy.elapsedTime = 0;
-    }
   }
-}
+  if(enemies.length > targetCount){
+    enemies.length = targetCount;
+  }
+
+  for(let i = 0; i < enemies.length; i++){
+    const spawn = ENEMY_SPAWNS[i % ENEMY_SPAWNS.length];
+    const enemy = enemies[i];
+
+    enemy.x = spawn.x + (i >= ENEMY_SPAWNS.length ? Math.random() * 220 : 0);
+    enemy.y = spawn.y;
+    enemy.velocity.x = 40;
+    enemy.velocity.y = 0;
+    enemy.isOnGround = false;
+    enemy.dead = false;
+    enemy.currentFrame = 0;
+    enemy.elapsedTime = 0;
+  }
+};
 spawnEnemies()
 let frog;
 let eagle;
@@ -915,8 +914,11 @@ function checkDoor(){
 
 function resetLapState(){
   resetGems()
-  spawnEnemies()
+
+  const targetEnemyCount = Math.min(3+level, 10);
+  spawnEnemies(targetEnemyCount);
   snapEnemiesToGround(enemies)
+  
   for (let i = 0; i < previewEnemies.length; i++) {
     const spawn = ENEMY_SPAWNS[i]
     const enemy = previewEnemies[i]
