@@ -108,7 +108,35 @@ function showHudToast(text, seconds=1.2){
   hudToastTimeLeft = seconds;
 }
 
+function applyDifficultyIncrease(){
+  for(let i=0;i<enemies.length;i++){
+    enemies[i].velocity.x = 40+level*30; 
+  }
+  const maxEnemies = Math.min(3+level,10);
+  while(enemies.length < maxEnemies){
+    const spawn = ENEMY_SPAWNS[Math.floor(Math.random()*ENEMY_SPAWNS.length)]
+
+    enemies.push(new Enemy({
+      x:spawn.x  +Math.random()*200,
+      y: spawn.y
+    }))
+  }
+
+  if(frog){
+    frog.moveSpeed = 40+level*10;
+    frog.jumpInterval = Math.max(1.6-level*0.1, 0.6);
+  }
+
+  if(eagle){
+    eagle.speed = 40+level*12;
+  }
+
+  showHudToast("LEVEL "+ level + "↑ DIFFICULTY", 1.5)
+}
+
 let score = 0
+let level = 1;
+let nextLevelScore = 100;
 let levelDone = false
 let laps = 0
 let gemsImage = null
@@ -122,24 +150,28 @@ const ENEMY_SPAWNS = [
 ]
 const previewEnemies = ENEMY_SPAWNS.map((spawn) => new Enemy(spawn))
 const spawnEnemies = () => {
-  for (let i = 0; i < ENEMY_SPAWNS.length; i++) {
-    const spawn = ENEMY_SPAWNS[i]
-    const enemy = enemies[i]
-    if (!enemy){
-      enemies.push(new Enemy(spawn))
-      continue
+  while(enemies.length < targetCount){
+    const spawn = ENEMY_SPAWNS[Math.floor(Math.random() * ENEMY_SPAWNS.length)];
+    enemies.push(new Enemy({
+      x: spawn.x + Math.random()*220,
+      y: spawn.y
+    }));
+    if(enemies.length > targetCount){
+      enemies.length = targetCount;
     }
-    enemy.x = spawn.x
-    enemy.y = spawn.y
-    enemy.velocity.x = 40
-    enemy.velocity.y = 0
-    enemy.isOnGround = false
-    enemy.dead = false
-    enemy.currentFrame = 0
-    enemy.elapsedTime = 0
-  }
-  if (enemies.length > ENEMY_SPAWNS.length){
-    enemies.length = ENEMY_SPAWNS.length
+
+    for(let i=0;i<enemies.length;i++){
+      const spawn = ENEMY_SPAWNS[i%ENEMY_SPAWNS.length];
+      const enemy = enemies[i];
+      enemy.x = spawn.x + (i >= ENEMY_SPAWNS.length ? Math.random()*220 : 0);
+      enemy.y = spawn.y;
+      enemy.velocity.x = 40;
+      enemy.velocity.y = 0;
+      enemy.isOnGround = false;
+      enemy.dead = false;
+      enemy.currentFrame = 0;
+      enemy.elapsedTime = 0;
+    }
   }
 }
 spawnEnemies()
@@ -653,24 +685,24 @@ function drawOutlinedText(ctx, text, x, y, fillColor, strokeColor, lineWidth){
 function drawHud(ctx){
   const x = 12
   const y = 12
-  const padX = 8
+  const padX =8
   const padY = 8
   const rowH = 14
   const gap = 2
   const panelW = 200
   const labelX = x + padX
   const valueRightX = x + panelW - padX
-
   const full = player.health;
   const max = player.maxHealth
+
   let hearts = ''
   for (let i = 0; i < max; i++){
     hearts += i < full ? '♥' : '♡';
-  } 
+  }
 
   const magText = player.magnetActive ? player.magnetTimeLeft.toFixed(1) + 's' : 'OFF'
   const snkText = player.superSneakersActive ? player.superSneakersTimeLeft.toFixed(1) + 's' : 'OFF'
-  const panelH = padY * 2 + rowH * 4 + gap * 3
+  const panelH = padY * 2 + rowH * 5 + gap * 4
 
   ctx.save()
   ctx.globalAlpha = 1
@@ -681,36 +713,44 @@ function drawHud(ctx){
   ctx.lineWidth = 2
   ctx.strokeRect(x + 1, y + 1, panelW - 2, panelH - 2)
 
-  let cy = y+padY+rowH/2;
+  let cy = y + padY + rowH / 2
   ctx.font = '9px "Press Start 2P", monospace'
-  ctx.fillStyle = 'white';
-  ctx.textAlign = 'left';
-  ctx.fillText('SCORE', labelX, cy);
+  ctx.fillStyle = 'white'
+  ctx.textAlign = 'left'
+  ctx.fillText('SCORE', labelX, cy)
+  ctx.fillStyle = '#ffe066'
+  ctx.textAlign = 'right'
+  ctx.fillText(String(score), valueRightX, cy)
 
-  ctx.fillStyle = '#ffe066';
-  ctx.textAlign = 'right';
-  ctx.fillText(String(score), valueRightX, cy);
+  cy += rowH + gap
+  ctx.fillStyle = 'white'
+  ctx.textAlign = 'left'
+  ctx.fillText('LEVEL', labelX, cy)
 
-  cy += rowH+gap;
+  ctx.fillStyle = '#7CFF7C'
+  ctx.textAlign = 'right'
+  ctx.fillText(String(level), valueRightX, cy)
+  cy += rowH + gap
+  ctx.fillStyle = 'white'
+  ctx.textAlign = 'left'
+  ctx.fillText('LIFE', labelX, cy)
 
-  ctx.fillStyle = 'white';
-  ctx.textAlign = 'left';
-  ctx.fillText('LIFE', labelX, cy);
-
-  ctx.font = '16px monospace';
-  ctx.textAlign = 'right';
-  drawOutlinedText(ctx, hearts, valueRightX, cy, '#ff4444', 'rgba(0,0,0,0.85)',4)
+  ctx.font = '16px monospace'
+  ctx.textAlign = 'right'
+  drawOutlinedText(ctx, hearts, valueRightX, cy, '#ff4444', 'rgba(0,0,0,0.85)', 4)
 
   cy += rowH + gap
   ctx.font = '8px "Press Start 2P", monospace'
   ctx.fillStyle = '#ff66ff'
   ctx.textAlign = 'left'
   ctx.fillText('MAGNET', labelX, cy)
+
   ctx.fillStyle = '#ffe066'
   ctx.textAlign = 'right'
   ctx.fillText(magText, valueRightX, cy)
 
   cy += rowH + gap
+
   ctx.fillStyle = '#00e5ff'
   ctx.textAlign = 'left'
   ctx.fillText('SNEAKERS', labelX, cy)
@@ -719,21 +759,22 @@ function drawHud(ctx){
   ctx.fillText(snkText, valueRightX, cy)
 
   if(hudToastTimeLeft > 0 && hudToastText){
-    const alpha = Math.min(1,hudToastTimeLeft/0.25);
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.font = '12px "Press Start 2P", monospace';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    const alpha = Math.min(1, hudToastTimeLeft / 0.25)
 
-    const msgX = GAME_WIDTH/2;
-    const msgY = 40;
-    ctx.fillStyle = 'rgba(0,0,0,0.75)';
-    ctx.fillRect(msgX-170, msgY-14, 340, 28);
-    drawOutlinedText(ctx, hudToastText, msgX, msgY, '#7CFF7C', 'rgba(0,0,0,0.9)',4);
-    ctx.restore();
+    ctx.save()
+    ctx.globalAlpha = alpha
+    ctx.font = '12px "Press Start 2P", monospace'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+
+    const msgX = GAME_WIDTH / 2
+    const msgY = 40
+
+    ctx.fillStyle = 'rgba(0,0,0,0.75)'
+    ctx.fillRect(msgX - 170, msgY - 14, 340, 28)
+    drawOutlinedText(ctx, hudToastText, msgX, msgY, '#7CFF7C', 'rgba(0,0,0,0.9)', 4)
+    ctx.restore()
   }
-
   ctx.restore()
 }
 
@@ -741,7 +782,6 @@ function drawLevelComplete(ctx){
   ctx.save()
   ctx.fillStyle = 'rgba(0,0,0,0.65)'
   ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT)
-
   ctx.fillStyle = 'yellow';
   ctx.font = '48px monospace'
   ctx.fillText('LEVEL COMPLETED!!!', 240, 250)
@@ -784,6 +824,13 @@ function tryCollectGems(deltaTime){
       const got = g.collect()
       if(got > 0){
         score += got
+        if(score >= nextLevelScore){
+          level++;
+          nextLevelScore += 120 + level*20;
+          showHudToast('LEVEL '+ level, 1.2)
+
+          applyDifficultyIncrease();
+        }
         window.__sound?.play('gem',{volume:0.7,rate:1});
         console.log('Collected gem +' + got)
       }
