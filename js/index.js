@@ -276,6 +276,7 @@ function applyDamageShake(){
   }
 }
 
+
 const door = new Door({x: 900, y: 400})
 let doorUsedThisLap = false
 const checkpoints = []

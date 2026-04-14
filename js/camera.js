@@ -2,6 +2,8 @@ let __shakeTime = 0;
 let __shakeDuration = 0;
 let __shakeStrength = 0;
 let __shakeSeed = 1;
+let __shakeKickX = 0;
+let __shakeKickY = 0;
 
 const camera = {
   x: 0,
@@ -78,34 +80,47 @@ function __shakeRand(){
   return __shakeSeed/4294967296;
 }
 
-window.cameraShakeImpulse = (strength, seconds=0.18) => {
+window.cameraShakeImpulse = (strength, seconds = 0.18, kick = null) => {
+  if (!Number.isFinite(strength) || strength <= 0) {
+    return;
+  }
+
   __shakeStrength = Math.max(__shakeStrength, strength);
   __shakeDuration = Math.max(__shakeDuration, seconds);
   __shakeTime = __shakeDuration;
-}
+
+  if (kick && typeof kick === 'object') {
+    const kx = Number(kick.x || 0);
+    const ky = Number(kick.y || 0);
+
+    if (Math.abs(kx) > Math.abs(__shakeKickX)) __shakeKickX = kx;
+    if (Math.abs(ky) > Math.abs(__shakeKickY)) __shakeKickY = ky;
+  }
+};
 
 window.cameraGetShakeOffset = (deltaTime) => {
-  if(__shakeTime <= 0 || __shakeStrength <= 0){
-    return{
-      x:0,
-      y:0
-    }
+  if (__shakeTime <= 0 || __shakeStrength <= 0) {
+    return { x: 0, y: 0 };
   }
 
-  __shakeTime = Math.max(0, __shakeTime-deltaTime);
+  __shakeTime = Math.max(0, __shakeTime - deltaTime);
+  const t = __shakeDuration > 0 ? (__shakeTime / __shakeDuration) : 0;
+  const amp = __shakeStrength * (t * t);
 
-  const t = __shakeDuration > 0 ? (__shakeTime/__shakeDuration) : 0;
-  const amp = __shakeStrength * (t*t);
-  const rx = (__shakeRand() * 2-1)*amp*0.55;
-  const ry = (__shakeRand()*2-1)*amp*1.0;
+  let x = (__shakeRand() * 2 - 1) * amp * 0.55;
+  let y = (__shakeRand() * 2 - 1) * amp * 1.0;
+  x += (__shakeKickX || 0);
+  y += (__shakeKickY || 0);
 
-  if(__shakeTime == 0){
+  const kickDecay = Math.pow(0.001, deltaTime); 
+  __shakeKickX = (__shakeKickX || 0) * kickDecay;
+  __shakeKickY = (__shakeKickY || 0) * kickDecay;
+
+  if (__shakeTime === 0) {
     __shakeStrength = 0;
     __shakeDuration = 0;
+    __shakeKickX = 0;
+    __shakeKickY = 0;
   }
-  return{
-    x:rx,
-    y:ry
-  }
-
-}
+  return { x, y };
+};
