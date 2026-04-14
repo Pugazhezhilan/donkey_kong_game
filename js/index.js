@@ -276,6 +276,78 @@ function applyDamageShake(){
   }
 }
 
+function applyStompShake(){
+  const strength = 6;
+  const duration = 0.12;
+
+  if(typeof window.cameraShakeImpulse == 'function'){
+    window.cameraShakeImpulse(strength, duration);
+  }
+}
+
+const particles = [];
+
+function rand(min, max){
+  return min+Math.random()*(max-min);
+}
+
+function spawnBurst({x, y, count=14, colors=['#ffe066', '#ffd43b', '#fff3bf'], spread=Math.PI*2, speedMin = 70, speedMax = 220, lifeMin = 0.25, lifeMax = 0.55, sizeMin = 2, sizeMax = 4, gravity = 520, drag = 3.5}){
+  for(let i=0;i<count;i++){
+    const a = rand(-spread/2, spread/2);
+    const s = rand(speedMin, speedMax);
+
+    particles.push({
+      x,
+      y,
+      vx: Math.cos(a)*s,
+      vy: Math.sin(a)*s,
+      r: rand(sizeMin, sizeMax),
+      life: rand(lifeMin, lifeMax),
+      maxLife: 0,
+      color: colors[(Math.random() * colors.length) | 0],
+      gravity,
+      drag
+    });
+
+    particles[particles.length-1].maxLife = particles[particles.length-1].life;
+  }
+}
+
+function updateParticles(dt){
+  for(let i=particles.length-1;i>=0;i--){
+    const p = particles[i];
+    p.life -= dt;
+    if(p.life <= 0){
+      particles.splice(i,1);
+      continue;
+    }
+
+    p.vx -= p.vx * p.drag *dt;
+    p.vy -= p.vy * p.drag * dt;
+    p.vy += p.gravity * dt;
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+  }
+}
+
+function drawParticles(ctx){
+  ctx.save();
+  ctx.globalCompositeOperations = 'lighter';
+
+  for(let i=0;i<particles.length;i++){
+    const p = particles[i];
+    const t = p.maxLife > 0 ? (p.life / p.maxLife) : 0;
+    const alpha = Math.max(0, Math.min(1,t));
+
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
 
 const door = new Door({x: 900, y: 400})
 let doorUsedThisLap = false
@@ -861,6 +933,19 @@ function tryCollectGems(deltaTime){
       const got = g.collect()
       if(got > 0){
         score += got
+        spawnBurst({
+          x: g.x + g.width/2,
+          y: g.y + g.height/2,
+          count: 14,
+          colors: ['#ffe066', '#ffd43b', '#fff3bf', '#fff'],
+          speedMin: 80,
+          speedMax: 240,
+          lifeMin: 0.22,
+          lifeMax: 0.55,
+          sizeMin: 2,
+          sizeMax: 4,
+          gravity: 520
+        });
         if(score >= nextLevelScore){
           level++;
           nextLevelScore += 120 + level*20;
@@ -883,12 +968,25 @@ function checkEnemyHit(){
     if (e.dead) continue
     const eb = e.getBounds()
     if (rectsTouching(pb, eb)){
-      if (player.velocity.y > 0 && player.y + player.height - 5 < e.y){
-        e.dead = true
+      if(player.velocity.y > 0 && player.y+player.height-5 < e.y){
+        e.dead = true;
+        applyStompShake();
+
+        spawnBurst({
+          x: e.y + e.width/2,
+          y: e.y + e.height/2,
+          count: 18,
+          colors: ['#ff6b6b','#ffd166','#ffffff'],
+          speedMin: 120,
+          speedMax: 300,
+          gravity: 400
+        });
+
         window.__sound?.play('stomp',{volume:0.8})
         player.velocity.y = -150
-        score = score + 30
-      } else {
+        score = score+30;
+      }
+      else{
         if (player.invincible) return
         player.health -= 1;
         applyDamageShake();
@@ -1057,6 +1155,19 @@ function checkCheckpointTouch(){
       if (!cp.activated) {
         console.log('checkpoint reached')
         cp.activated = true
+        spawnBurst({
+          x: cp.x + (cp.size ?? cp.width ?? 16)/2,
+          y: cp.y + (cp.size ?? cp.height ?? 16)/2,
+          count: 26,
+          colors: ['#7CFF7C','#d3ffd3','#ffffff'],
+          speedMin: 110,
+          speedMax: 320,
+          lifeMin: 0.35,
+          lifeMax: 0.85,
+          sizeMin: 2,
+          sizeMax: 6,
+          gravity: 380
+        })
         currentCheckpoint.x = cp.x
         currentCheckpoint.y = cp.y
         window.__sound?.play('checkpoint',{volume:0.8})
@@ -1074,6 +1185,19 @@ function checkMagnetPickup(){
     if(m.collected)continue;
     if(rectsTouching(pb, m.getBounds())){
       m.collect(player);
+      spawnBurst({
+        x: m.x + m.size/2,
+        y: m.y + m.size/2,
+        count: 20,
+        colors: ['#ff4df8','#ffd6ff','#ffffff'],
+        speedMin: 90,
+        speedMax: 280,
+        lifeMin: 0.25,
+        lifeMax: 0.65,
+        sizeMin: 2,
+        sizeMax: 5,
+        gravity: 420
+      })
       window.__sound?.play('checkpoint',{volume:0.6, rate:1.2});
     }
   }
@@ -1086,7 +1210,21 @@ function checkSneakersPickup(){
     if(s.collected) continue;
     if(rectsTouching(pb, s.getBounds())){
       s.collect(player);
-      window.__sound?.play('checkpoint',{volume:0.6, rate: 1.35});
+
+      spawnBurst({
+        x: s.x + (s.size ?? s.width ?? 16)/2,
+        y: s.y + (s.size ?? s.height ?? 16)/2,
+        count: 18,
+        colors: ['#00e5ff', '#b3f5ff', '#ffffff'],
+        speedMin: 90,
+        speedMax: 260,
+        lifeMin: 0.25,
+        lifeMax: 0.60,
+        sizeMin: 2,
+        sizeMax: 5,
+        gravity: 460
+      })
+      window.__sound?.play('checkpoint', {volume: 0.6, rate: 1.35});
     }
   }
 }
@@ -1171,6 +1309,7 @@ function animate(){
     }
 
     tryCollectGems(deltaTime);
+    updateParticles(deltaTime);
     checkEnemyHit();
     checkAnimalHazards();
     checkCheckpointTouch();
@@ -1291,6 +1430,7 @@ function animate(){
   }
 
   player.draw(c, deltaTime)
+  drawParticles(c);
   c.restore()
   drawHud(c)
   c.restore()
