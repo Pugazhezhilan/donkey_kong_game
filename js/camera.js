@@ -1,3 +1,8 @@
+let __shakeTime = 0;
+let __shakeDuration = 0;
+let __shakeStrength = 0;
+let __shakeSeed = 1;
+
 const camera = {
   x: 0,
   y: 0,
@@ -66,4 +71,41 @@ const toScreenX = (x) => {
 }
 const toScreenY = (y) => {
   return y-camera.y;
+}
+
+function __shakeRand(){
+  __shakeSeed = (__shakeSeed*1664525 + 1013904223) >>> 0;
+  return __shakeSeed/4294967296;
+}
+
+window.cameraShakeImpulse = (strength, seconds=0.18) => {
+  __shakeStrength = Math.max(__shakeStrength, strength);
+  __shakeDuration = Math.max(__shakeDuration, seconds);
+  __shakeTime = __shakeDuration;
+}
+
+window.cameraGetShakeOffset = (deltaTime) => {
+  if(__shakeTime <= 0 || __shakeStrength <= 0){
+    return{
+      x:0,
+      y:0
+    }
+  }
+
+  __shakeTime = Math.max(0, __shakeTime-deltaTime);
+
+  const t = __shakeDuration > 0 ? (__shakeTime/__shakeDuration) : 0;
+  const amp = __shakeStrength * (t*t);
+  const rx = (__shakeRand() * 2-1)*amp*0.55;
+  const ry = (__shakeRand()*2-1)*amp*1.0;
+
+  if(__shakeTime == 0){
+    __shakeStrength = 0;
+    __shakeDuration = 0;
+  }
+  return{
+    x:rx,
+    y:ry
+  }
+
 }

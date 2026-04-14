@@ -139,6 +139,12 @@ let levelDone = false
 let laps = 0
 let gemsImage = null
 let lastTime = 0
+
+let wasOnGroundLastFrame = false;
+let fallStartY = null;
+let peakFallDistance = 0;
+let framesInAir = 0;
+
 const player = new Player({x: 100, y: 100, size:32, velocity:{x: 0, y: 0}})
 const enemies = []
 const ENEMY_SPAWNS = [
@@ -238,6 +244,25 @@ const spawnSneakers = () => {
   }
 }
 spawnSneakers();
+
+function applyLandingShakeFromFallDistance(fallDistancePx){
+  const minFall = 34;
+  const maxFall = 220;
+
+  if(fallDistancePx < minFall){
+    return;
+  }
+
+  const clamped = Math.min(maxFall, Math.max(minFall, fallDistancePx));
+  const t = (clamped-minFall) / (maxFall-minFall);
+
+  const strength = 2+t*10;
+  const duration = 0.10 + t*0.14;
+
+  if(typeof window.cameraShakeImpulse == 'function'){
+    window.cameraShakeImpulse(strength, duration);
+  }
+}
 
 const door = new Door({x: 900, y: 400})
 let doorUsedThisLap = false
@@ -1063,14 +1088,59 @@ function animate(){
     }
   }
 
-  if(!paused && !gameOver){
+    if(!paused && !gameOver){
     player.handleInput(keys);
     checkMagnetPickup();
     checkSneakersPickup();
-    const nearLoopSeam = player.x >= WORLD_WIDTH - GAME_WIDTH
-    const activeCollisionBlocks = nearLoopSeam ? collisionBlocksWrapped : collisionBlocks
-    const activePlatforms = nearLoopSeam ? platformsWrapped : platforms
+
+    const nearLoopSeam = player.x >= WORLD_WIDTH - GAME_WIDTH;
+    const activeCollisionBlocks = nearLoopSeam ? collisionBlocksWrapped : collisionBlocks;
+    const activePlatforms = nearLoopSeam ? platformsWrapped : platforms;
+
+    // Capture vertical speed BEFORE update() resolves collisions.
+    const vyBeforeUpdate = player.velocity ? player.velocity.y : 0;
+
     player.update(deltaTime, activeCollisionBlocks, activePlatforms);
+
+    // Landing detection AFTER update (isOnGround is now correct)
+    const onGroundNow = !!player.isOnGround;
+
+    if(!onGroundNow){
+      framesInAir++;
+
+      if(wasOnGroundLastFrame){
+        fallStartY = player.y;
+        peakFallDistance = 0;
+      }
+      if(fallStartY != null){
+        peakFallDistance = Math.max(peakFallDistance, player.y - fallStartY);
+      }
+    }
+    else{
+      if(!wasOnGroundLastFrame){
+        const wasReallyAirborne = framesInAir >= 2;
+
+        if(wasReallyAirborne){
+          applyLandingShakeFromFallDistance(peakFallDistance);
+
+          const t = Math.min(1, peakFallDistance / 200);
+          window.__sound?.play('land', {
+            volume: 0.6 + t * 0.25,
+            rate: 1.0 - t * 0.12
+          });
+        }
+
+        fallStartY = null;
+        peakFallDistance = 0;
+        framesInAir = 0;
+      }
+      else{
+        framesInAir = 0;
+      }
+    }
+
+    wasOnGroundLastFrame = onGroundNow;
+
     frog.update(deltaTime, collisionBlocks);
     eagle.update(deltaTime);
 
@@ -1082,7 +1152,7 @@ function animate(){
     }
 
     for(let i=enemies.length-1;i>=0;i--){
-      if(enemies[i].dead)enemies.splice(i,1);
+      if(enemies[i].dead) enemies.splice(i, 1);
     }
 
     tryCollectGems(deltaTime);
@@ -1128,7 +1198,8 @@ function animate(){
   c.setTransform(1, 0, 0, 1, 0, 0);
   c.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT)
   c.save()
-  c.translate(-camera.x, -camera.y)
+  const shake = (typeof window.cameraGetShakeOffset == 'function') ? window.cameraGetShakeOffset(deltaTime) : {x:0, y: 0};
+  c.translate(-camera.x + shake.x, -camera.y + shake.y);
 
   const drawWorldAtOffset = (offsetX, animated) => {
     c.save()
