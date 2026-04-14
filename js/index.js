@@ -264,6 +264,18 @@ function applyLandingShakeFromFallDistance(fallDistancePx){
   }
 }
 
+function applyDamageShake(){
+  const healthRatio = player.maxHealth > 0 ? (player.health/player.maxHealth) : 1;
+  const danger = 1-Math.max(0,Math.min(1,healthRatio));
+
+  const strength = 10+danger*8;
+  const duration = 0.16+danger*0.10;
+
+  if(typeof window.cameraShakeImpulse === 'function'){
+    window.cameraShakeImpulse(strength, duration);
+  }
+}
+
 const door = new Door({x: 900, y: 400})
 let doorUsedThisLap = false
 const checkpoints = []
@@ -877,7 +889,8 @@ function checkEnemyHit(){
         score = score + 30
       } else {
         if (player.invincible) return
-        player.health -= 1
+        player.health -= 1;
+        applyDamageShake();
         startDistanceHealTracking();
         window.__sound?.play('hurt',{volume:0.9});
         player.velocity.y = -120
@@ -896,6 +909,7 @@ function checkEnemyHit(){
 function hurtPlayer(){
   if(player.invincible)return;
   player.health -= 1;
+  applyDamageShake();
   startDistanceHealTracking();
   window.__sound?.play('hurt',{volume: 0.9})
   player.velocity.y = -120
